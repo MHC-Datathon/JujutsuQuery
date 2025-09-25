@@ -4,8 +4,8 @@ We're Team Jujutsu Query, and this project started with something we see every d
 
 ## Our Team
 
-- [Albert Bagdasarov](https://github.com/AlbertBagdos256)
 - [Basir Abdul Samad](https://github.com/BasirS)
+- [Albert Bagdasarov](https://github.com/AlbertBagdos256)
 - [Caitlin Reyes](https://github.com/Caitlin-Reyes)
 - [Tenzin Namdol](https://github.com/Tenzin-Namdol)
 
