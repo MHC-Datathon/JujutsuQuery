@@ -1,11 +1,11 @@
 import { defineConfig } from 'astro/config';
 import tailwind from '@astrojs/tailwind';
 import react from '@astrojs/react';
-import vercel from '@astrojs/vercel/serverless';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://clearlane.org',
+  site: 'https://basirs.github.io',
+  base: '/ACE_Intelligence_System',
   integrations: [
     tailwind({
       applyBaseStyles: false, // We'll handle base styles ourselves
@@ -14,15 +14,7 @@ export default defineConfig({
       include: ['**/react/*', '**/charts/*', '**/visualizations/*']
     })
   ],
-  output: 'hybrid',
-  adapter: vercel({
-    webAnalytics: {
-      enabled: true
-    },
-    speedInsights: {
-      enabled: true
-    }
-  }),
+  output: 'static',
   vite: {
     optimizeDeps: {
       include: ['d3', 'chart.js', 'papaparse', 'leaflet']
