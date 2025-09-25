@@ -127,9 +127,7 @@ Public assets for the Astro site, including `site.webmanifest` which provides me
 
 - `public/site.webmanifest`, a web app manifest file that provides metadata about the web application, including name, description, icons, and display properties for when the site is installed on a device
 
-### `resources/` the comprehensive LLM knowledge base
-
-This folder is specifically designed for LLMs to read and understand the project context, it contains reference documents, helper texts, and geo files used by notebooks and scripts, the content here is structured to help AI assistants understand the project narrative, data sources, and technical implementation details, this knowledge base works in conjunction with the three tier documentation system in `results/` to provide Claude Code with everything needed to generate website content and understand the complete project scope
+### `resources/` the comprehensive documentation
 
 - `resources/bus_routes.geojson`, GeoJSON file containing bus route geometries for mapping and spatial analysis, used by notebooks for route visualization and spatial joins
 - `resources/cbd_zone.geojson`, GeoJSON file defining the Central Business District zone boundaries, used for congestion pricing analysis and CBD specific violation analysis
@@ -141,51 +139,6 @@ This folder is specifically designed for LLMs to read and understand the project
 - `resources/plot_mta_bus_stops_from_dev_portal.txt`, instructions for plotting MTA bus stops using the MTA Developer Portal, provides code examples for basic stop visualization
 - `resources/soql_2025_bus_hourly_ridership.ipynb`, a Jupyter notebook demonstrating SoQL queries for the 2025 bus hourly ridership dataset, shows how to filter, group, and aggregate data using the Socrata Open Data API
 - `resources/SoQL_tutorial.txt`, a comprehensive tutorial on using SoQL (Socrata Query Language) with MTA datasets, covers NYS Data Catalog tools, SODA API, why to use SoQL for large datasets, tutorial on filtering and aggregating data, modifying API endpoint URLs, using Python to submit SoQL queries, includes practical examples for analyzing bus ridership data and working with fare categories like Fair Fare riders
-
-### `results/` the comprehensive documentation system
-
-This folder contains a sophisticated three tier documentation system designed for different audiences and use cases, from human readers to AI code generation, the structure supports both human comprehension and Claude Code's ability to understand and generate website content based on the analysis
-
-#### `results/txt/` the human readable narrative layer
-
-This directory contains the primary human readable outputs of all notebooks, formatted as clean text files that tell the complete story of the analysis, these files are designed for policy makers, researchers, and anyone who wants to understand the findings without running code
-
-- `results/txt/Notebook 01.txt`, the complete narrative of the pipeline understanding notebook, walks through how raw violation data becomes route hour metrics, builds enforcement intensity and paradox scores, shows CUNY proximity checks with 500 meter buffers using Haversine distance, includes all code outputs and visualizations in text form, this is the foundation document that explains the core methodology
-- `results/txt/Notebook 02.txt`, the comprehensive feature engineering story, documents the full feature build on 3.78M violation records from Oct 2019 to Aug 2025, shows temporal blocks including rush periods and class change windows, spatial clusters with DBSCAN and local density, CUNY proximity and campus interaction flags, adaptation features like repeat offender patterns and entropy based predictability, multiple targets including next hour, next day, severity flags, speed impact, and composite risk, reports the final 453,935 by 41 modeling dataset with complete metadata
-- `results/txt/Notebook 03.txt`, the integrated predictive analysis narrative, recreates the enforcement paradox visuals, temporal and spatial charts, campus deep dive analysis, and model evaluation sections, includes the validation that computes an 85.6 percent failure rate over 557 routes, sketches a deployment plan with hour by route scores and savings estimates, this document connects analytical insights with actionable deployment strategies
-- `results/txt/Notebook 04.txt`, the final comprehensive report that synthesizes all findings into a complete narrative, this is the master document that tells the full story from problem identification through solution implementation, includes all key findings, policy recommendations, and implementation roadmaps
-- `results/txt/Notebook 05.txt`, the focused analysis documentation covering specific corridors, campuses, and time windows, provides detailed insights into particular aspects of the data that require deeper investigation
-- `results/txt/Notebook 06.txt`, the CUNY export narrative that explains each CSV file in `dashboard/insights/CUNY_Insights/`, documents the process of building campus specific analysis outputs and their use in dashboard visualizations
-- `results/txt/Notebook 07.txt`, the machine learning documentation covering the Random Forest ridership prediction model, explains the training process, hyperparameter tuning results, feature importance analysis showing hour as the most important predictor at 37.9 percent, model performance metrics including R² of 0.963, MAE of 2903.57, and RMSE of 7940.28, includes the actual vs predicted scatter plot analysis
-
-#### `results/input_output/` the Claude Code processing layer
-
-This directory contains the exact same content as the txt files but formatted specifically for Claude Code to process and understand, these files are optimized for AI code generation and website building, they contain the complete analysis with all code outputs, data processing steps, and results in a format that Claude Code can easily parse and use to generate website content
-
-- `results/input_output/01_understanding_the_pipeline.txt`, the pipeline understanding content formatted for Claude Code processing, includes all code cells, outputs, and analysis steps that Claude Code can use to understand the methodology and generate explanatory content
-- `results/input_output/02_feature_engineering.txt`, the feature engineering process documented for Claude Code, contains all the technical details, data transformations, and feature creation steps that can be used to generate technical documentation and implementation guides
-- `results/input_output/03_continued_predictive_story.txt`, the predictive analysis content for Claude Code, includes all model evaluation results, deployment strategies, and policy recommendations that can be used to generate solution focused website content
-- `results/input_output/04_final_complete_analysis.txt`, the comprehensive analysis formatted for Claude Code, contains the complete narrative and findings that can be used to generate the main website content and policy briefs
-- `results/input_output/06_csv_generation.txt`, the CUNY export process documented for Claude Code, includes all the data processing steps and output descriptions that can be used to generate dashboard documentation and data explanation content
-- `results/input_output/07_bus_ridership_prediction.txt`, the machine learning analysis formatted for Claude Code, contains all model details, performance metrics, and prediction capabilities that can be used to generate technical documentation and interactive features
-
-#### `results/docs/` the print ready documentation layer
-
-This directory contains PDF versions of all notebooks formatted for print and formal documentation, these files are designed for policy briefs, academic papers, and formal presentations
-
-- `results/docs/Notebook 01.pdf`, print ready version of the pipeline understanding analysis, formatted for inclusion in formal documents and presentations
-- `results/docs/Notebook 02.pdf`, print ready version of the feature engineering documentation, suitable for technical reports and academic papers
-- `results/docs/Notebook 03.pdf`, print ready version of the predictive analysis, formatted for policy briefs and implementation guides
-- `results/docs/Notebook 04.pdf`, print ready version of the final comprehensive analysis, the master document for formal presentations and policy submissions
-- `results/docs/Notebook 05.pdf`, print ready version of the focused analysis, suitable for specialized reports and detailed investigations
-- `results/docs/Notebook 06.pdf`, print ready version of the CUNY export documentation, formatted for campus specific reports and stakeholder communications
-- `results/docs/Notebook 07.pdf`, print ready version of the machine learning analysis, suitable for technical documentation and model validation reports
-
-#### `results/pdf/` the original PDF exports
-
-This directory contains the original PDF exports from the notebooks, maintaining the original formatting and structure from the Jupyter notebook outputs
-
-- `results/pdf/01_understanding_the_pipeline.pdf`, `02_feature_engineering.pdf`, `03_continued_predictive_story.pdf`, `04_final_complete_analysis.pdf`, `05_focused_analysis.pdf`, `06_csv_generation.pdf`, `07_bus_ridership_prediction.pdf`, the original notebook exports in PDF format
 
 ### `src/` the Astro site
 
@@ -248,28 +201,6 @@ Supporting folders under `src/` include
 2, read the results texts in `results/txt/` to learn how features and scores are built, formulas and choices are written in the text so the logic is transparent
 3, use the site pages to communicate with a broader audience, the home page sets the scene, methodology builds trust, solution and policy pages translate findings into actions
 4, when modeling, load `data/processed/modeling_dataset.parquet`, the features cover time, space, campus proximity, adaptation, and multiple targets that serve immediate and tactical horizons
-
-## The three tier documentation system for Claude Code
-
-The repository implements a sophisticated documentation architecture designed to support both human comprehension and AI code generation, this system ensures Claude Code has access to all necessary information to understand the project and generate website content
-
-### Tier 1: Human readable narrative (`results/txt/`)
-
-The foundation layer contains clean, human readable text files that tell the complete story of the analysis, these files are designed for policy makers, researchers, and stakeholders who need to understand the findings without running code, they provide the narrative context and high level insights that form the basis for all other documentation
-
-### Tier 2: Claude Code processing layer (`results/input_output/`)
-
-The core processing layer contains the exact same content as the txt files but formatted specifically for Claude Code to parse and understand, these files are optimized for AI code generation and website building, they contain all code outputs, data processing steps, and results in a format that Claude Code can easily process to generate website content, interactive features, and technical documentation
-
-### Tier 3: Print ready documentation (`results/docs/` and `results/pdf/`)
-
-The formal documentation layer contains PDF versions formatted for print, policy briefs, academic papers, and formal presentations, these files maintain the professional appearance needed for official documents and stakeholder communications
-
-### How Claude Code uses the documentation system
-
-Claude Code can access the `results/input_output/` files to understand the complete technical implementation, use the `resources/` knowledge base for context about data sources and methodologies, and reference the `results/txt/` files for narrative structure and human readable explanations, this three tier system allows Claude Code to generate website content that is both technically accurate and accessible to different audiences
-
-The `resources/` folder provides the foundational knowledge about MTA data, analysis techniques, and project context, while the `results/input_output/` files provide the specific analysis results and technical details, together they give Claude Code everything needed to create comprehensive website content that accurately represents the project's findings and methodology
 
 ## Notes on figures and scope
 
