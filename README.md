@@ -13,6 +13,12 @@ ClearLane is a student led analysis and product concept that studies NYC bus lan
 
 ---
 
+## Website & Presentation
+
+- Website (Still Processing): https://mhc-datathon.github.io/JujutsuQuery/
+- Alternative Website Link: https://basirs.github.io/ACE_Intelligence_System/
+- Video Presentation: https://youtu.be/QIEuvQGrqm8
+
 ## The central idea and narrative
 
 Buses act like educational infrastructure for CUNY students, the commute is a rolling study hall that should be protected, violations are not random, they cluster at a small set of locations and they peak during school commute hours, a targeted approach called ClearLane focuses enforcement on those locations during those hours, which is expected to raise speeds and give students back study time, the numbers you see below are tied to the specific sources where they appear in code and results so a reader can follow the trail
