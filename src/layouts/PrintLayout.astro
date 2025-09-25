@@ -1,0 +1,599 @@
+---
+/**
+ * Print Layout for ClearLane Initiative
+ * Optimized layout for policy documents and research reports
+ */
+
+export interface Props {
+  title: string;
+  subtitle?: string;
+  author?: string;
+  date?: string;
+  version?: string;
+  documentType?: 'policy' | 'research' | 'summary' | 'report';
+  showHeader?: boolean;
+  showFooter?: boolean;
+  showTableOfContents?: boolean;
+  pageNumbers?: boolean;
+  confidentiality?: 'public' | 'confidential' | 'draft';
+  class?: string;
+}
+
+const {
+  title,
+  subtitle,
+  author = 'ClearLane Initiative Team',
+  date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+  version = '1.0',
+  documentType = 'policy',
+  showHeader = true,
+  showFooter = true,
+  showTableOfContents = false,
+  pageNumbers = true,
+  confidentiality = 'public',
+  class: className = ''
+} = Astro.props;
+
+const documentTypeLabels = {
+  policy: 'Policy Brief',
+  research: 'Research Report',
+  summary: 'Executive Summary',
+  report: 'Analysis Report'
+};
+
+const confidentialityStyles = {
+  public: '',
+  confidential: 'border-red-500',
+  draft: 'border-yellow-500'
+};
+---
+
+<!DOCTYPE html>
+<html lang="en" class="print-document">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title} - ClearLane Initiative</title>
+
+  <!-- Print-specific meta -->
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="print-date" content={date} />
+  <meta name="document-version" content={version} />
+
+  <!-- Print-optimized styles -->
+  <style>
+    /* Reset and base styles */
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 12pt;
+      line-height: 1.6;
+      color: #000000;
+      background: white;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: white;
+      color: black;
+    }
+
+    /* Page setup */
+    @page {
+      size: 8.5in 11in;
+      margin: 1in 0.75in 1in 0.75in;
+
+      @top-left {
+        content: "ClearLane Initiative";
+        font-size: 10pt;
+        color: #666;
+        font-family: Arial, sans-serif;
+      }
+
+      @top-right {
+        content: string(document-title);
+        font-size: 10pt;
+        color: #666;
+        font-family: Arial, sans-serif;
+      }
+
+      @bottom-left {
+        content: "Confidential - Do Not Distribute" if var(--confidentiality) == "confidential";
+        content: "DRAFT - Not For Distribution" if var(--confidentiality) == "draft";
+        content: "";
+        font-size: 8pt;
+        color: #999;
+        font-style: italic;
+      }
+
+      @bottom-center {
+        content: counter(page) " of " counter(pages);
+        font-size: 10pt;
+        color: #666;
+      }
+
+      @bottom-right {
+        content: string(print-date);
+        font-size: 8pt;
+        color: #999;
+      }
+    }
+
+    /* First page specific */
+    @page :first {
+      @top-left { content: ""; }
+      @top-right { content: ""; }
+      @bottom-center { content: ""; }
+    }
+
+    /* Chapter pages */
+    @page chapter {
+      @top-left { content: ""; }
+      @top-right { content: ""; }
+    }
+
+    /* Typography */
+    h1 {
+      font-size: 24pt;
+      font-weight: bold;
+      margin: 0 0 12pt 0;
+      page-break-after: avoid;
+      color: #1e40af;
+    }
+
+    h2 {
+      font-size: 18pt;
+      font-weight: bold;
+      margin: 18pt 0 12pt 0;
+      page-break-after: avoid;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 6pt;
+    }
+
+    h3 {
+      font-size: 14pt;
+      font-weight: bold;
+      margin: 16pt 0 8pt 0;
+      page-break-after: avoid;
+    }
+
+    h4 {
+      font-size: 12pt;
+      font-weight: bold;
+      margin: 12pt 0 6pt 0;
+      page-break-after: avoid;
+    }
+
+    p {
+      margin: 0 0 12pt 0;
+      text-align: justify;
+      orphans: 2;
+      widows: 2;
+    }
+
+    /* Lists */
+    ul, ol {
+      margin: 12pt 0;
+      padding-left: 24pt;
+    }
+
+    li {
+      margin-bottom: 6pt;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12pt 0;
+      page-break-inside: avoid;
+    }
+
+    th, td {
+      border: 1px solid #333;
+      padding: 6pt 8pt;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #f0f0f0;
+      font-weight: bold;
+    }
+
+    /* Images and figures */
+    img {
+      max-width: 100%;
+      height: auto;
+      page-break-inside: avoid;
+      margin: 12pt 0;
+    }
+
+    figure {
+      margin: 12pt 0;
+      page-break-inside: avoid;
+      text-align: center;
+    }
+
+    figcaption {
+      font-size: 10pt;
+      font-style: italic;
+      margin-top: 6pt;
+      text-align: center;
+      color: #666;
+    }
+
+    /* Code blocks */
+    pre, code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 10pt;
+      background-color: #f8f8f8;
+      border: 1px solid #ddd;
+      padding: 8pt;
+      margin: 12pt 0;
+      page-break-inside: avoid;
+    }
+
+    code {
+      padding: 2pt 4pt;
+      display: inline;
+    }
+
+    /* Blockquotes */
+    blockquote {
+      margin: 12pt 24pt;
+      padding: 8pt 12pt;
+      border-left: 3pt solid #ccc;
+      font-style: italic;
+      background-color: #f9f9f9;
+    }
+
+    /* Page breaks */
+    .page-break {
+      page-break-before: always;
+    }
+
+    .no-break {
+      page-break-inside: avoid;
+    }
+
+    .break-after {
+      page-break-after: always;
+    }
+
+    /* Document header */
+    .document-header {
+      text-align: center;
+      margin-bottom: 36pt;
+      padding-bottom: 18pt;
+      border-bottom: 2px solid #1e40af;
+    }
+
+    .document-type {
+      font-size: 10pt;
+      text-transform: uppercase;
+      color: #666;
+      letter-spacing: 1pt;
+      margin-bottom: 6pt;
+    }
+
+    .document-title {
+      font-size: 28pt;
+      font-weight: bold;
+      color: #1e40af;
+      margin: 12pt 0;
+      string-set: document-title content();
+    }
+
+    .document-subtitle {
+      font-size: 16pt;
+      color: #666;
+      margin: 6pt 0;
+    }
+
+    .document-meta {
+      font-size: 10pt;
+      color: #666;
+      margin-top: 18pt;
+    }
+
+    .document-meta div {
+      margin-bottom: 3pt;
+    }
+
+    /* Table of contents */
+    .table-of-contents {
+      page-break-after: always;
+      margin: 24pt 0;
+    }
+
+    .toc-title {
+      font-size: 18pt;
+      font-weight: bold;
+      margin-bottom: 18pt;
+      text-align: center;
+    }
+
+    .toc-entry {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6pt;
+      padding-bottom: 3pt;
+      border-bottom: 1px dotted #ccc;
+    }
+
+    .toc-entry a {
+      text-decoration: none;
+      color: black;
+    }
+
+    /* Sections */
+    .section {
+      margin-bottom: 24pt;
+    }
+
+    .section-title {
+      page: chapter;
+    }
+
+    /* Confidentiality markers */
+    .confidentiality-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      text-align: center;
+      padding: 6pt;
+      font-size: 10pt;
+      font-weight: bold;
+      z-index: 1000;
+    }
+
+    .confidential {
+      background-color: #fee;
+      color: #c00;
+      border-bottom: 2px solid #c00;
+    }
+
+    .draft {
+      background-color: #fef7e0;
+      color: #92400e;
+      border-bottom: 2px solid #f59e0b;
+    }
+
+    /* Executive summary box */
+    .executive-summary {
+      background-color: #f0f7ff;
+      border: 2px solid #1e40af;
+      padding: 12pt;
+      margin: 18pt 0;
+      page-break-inside: avoid;
+    }
+
+    .executive-summary h3 {
+      margin-top: 0;
+      color: #1e40af;
+    }
+
+    /* Key findings callout */
+    .key-findings {
+      background-color: #f0fdf4;
+      border-left: 4px solid #059669;
+      padding: 12pt;
+      margin: 18pt 0;
+      page-break-inside: avoid;
+    }
+
+    /* Data tables */
+    .data-table {
+      font-size: 10pt;
+      margin: 12pt 0;
+    }
+
+    .data-table th {
+      background-color: #1e40af;
+      color: white;
+      font-weight: bold;
+    }
+
+    .data-table tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+
+    /* Charts and visualizations placeholder */
+    .chart-placeholder {
+      border: 2px dashed #ccc;
+      padding: 24pt;
+      text-align: center;
+      color: #666;
+      font-style: italic;
+      page-break-inside: avoid;
+    }
+
+    /* Footnotes */
+    .footnotes {
+      border-top: 1px solid #ccc;
+      margin-top: 24pt;
+      padding-top: 12pt;
+      font-size: 10pt;
+    }
+
+    .footnote {
+      margin-bottom: 6pt;
+    }
+
+    /* Appendix */
+    .appendix {
+      page-break-before: always;
+    }
+
+    .appendix h2 {
+      color: #666;
+    }
+
+    /* Print date string */
+    .print-date {
+      string-set: print-date content();
+    }
+
+    /* Utilities */
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .text-small { font-size: 10pt; }
+    .text-large { font-size: 14pt; }
+    .font-bold { font-weight: bold; }
+    .font-italic { font-style: italic; }
+    .color-primary { color: #1e40af; }
+    .color-muted { color: #666; }
+
+    /* Hide screen-only elements */
+    .no-print {
+      display: none !important;
+    }
+
+    /* Show print-only elements */
+    .print-only {
+      display: block !important;
+    }
+
+    /* Responsive adjustments for different page sizes */
+    @media print and (max-width: 6in) {
+      html { font-size: 10pt; }
+      h1 { font-size: 20pt; }
+      h2 { font-size: 16pt; }
+      h3 { font-size: 12pt; }
+    }
+  </style>
+</head>
+
+<body class={`print-document ${confidentialityStyles[confidentiality]} ${className}`}>
+  <!-- Confidentiality Banner -->
+  {confidentiality === 'confidential' && (
+    <div class="confidentiality-banner confidential">
+      CONFIDENTIAL - DO NOT DISTRIBUTE
+    </div>
+  )}
+  {confidentiality === 'draft' && (
+    <div class="confidentiality-banner draft">
+      DRAFT - NOT FOR DISTRIBUTION
+    </div>
+  )}
+
+  <!-- Hidden elements for page headers -->
+  <div class="print-date" style="display: none;">{date}</div>
+
+  <!-- Document Header -->
+  <header class="document-header">
+    <div class="document-type">{documentTypeLabels[documentType]}</div>
+    <h1 class="document-title">{title}</h1>
+    {subtitle && <div class="document-subtitle">{subtitle}</div>}
+
+    <div class="document-meta">
+      <div><strong>Author:</strong> {author}</div>
+      <div><strong>Date:</strong> {date}</div>
+      <div><strong>Version:</strong> {version}</div>
+      {confidentiality !== 'public' && (
+        <div><strong>Classification:</strong> {confidentiality.toUpperCase()}</div>
+      )}
+    </div>
+  </header>
+
+  <!-- Table of Contents -->
+  {showTableOfContents && (
+    <section class="table-of-contents">
+      <h2 class="toc-title">Table of Contents</h2>
+      <slot name="toc">
+        <!-- Default TOC structure -->
+        <div class="toc-entry">
+          <span><a href="#executive-summary">Executive Summary</a></span>
+          <span>2</span>
+        </div>
+        <div class="toc-entry">
+          <span><a href="#methodology">Methodology</a></span>
+          <span>3</span>
+        </div>
+        <div class="toc-entry">
+          <span><a href="#findings">Key Findings</a></span>
+          <span>4</span>
+        </div>
+        <div class="toc-entry">
+          <span><a href="#recommendations">Recommendations</a></span>
+          <span>6</span>
+        </div>
+        <div class="toc-entry">
+          <span><a href="#conclusion">Conclusion</a></span>
+          <span>8</span>
+        </div>
+        <div class="toc-entry">
+          <span><a href="#appendix">Appendix</a></span>
+          <span>9</span>
+        </div>
+      </slot>
+    </section>
+  )}
+
+  <!-- Main Content -->
+  <main class="document-content">
+    <slot />
+  </main>
+
+  <!-- Footer content -->
+  <footer class="print-only" style="margin-top: 36pt; padding-top: 18pt; border-top: 1px solid #ccc; font-size: 10pt; color: #666;">
+    <div class="text-center">
+      <p><strong>ClearLane Initiative</strong></p>
+      <p>Data-driven advocacy for better NYC bus lane enforcement</p>
+      <p>For more information, visit: <strong>clearlane.org</strong></p>
+    </div>
+  </footer>
+
+  <!-- Print utilities script -->
+  <script>
+    // Auto-generate table of contents if enabled
+    if (document.querySelector('.table-of-contents') && !document.querySelector('.toc-entry')) {
+      const toc = document.querySelector('.table-of-contents');
+      const headings = document.querySelectorAll('h2, h3, h4');
+      let tocHTML = '<h2 class="toc-title">Table of Contents</h2>';
+
+      headings.forEach((heading, index) => {
+        const id = heading.id || `heading-${index}`;
+        heading.id = id;
+
+        const level = heading.tagName.toLowerCase();
+        const indent = level === 'h3' ? 'margin-left: 12pt;' : level === 'h4' ? 'margin-left: 24pt;' : '';
+
+        tocHTML += `<div class="toc-entry" style="${indent}">
+          <span><a href="#${id}">${heading.textContent}</a></span>
+          <span>•</span>
+        </div>`;
+      });
+
+      toc.innerHTML = tocHTML;
+    }
+
+    // Add page break classes to sections
+    document.querySelectorAll('h2').forEach(heading => {
+      heading.classList.add('section-title');
+    });
+
+    // Print date
+    window.addEventListener('beforeprint', () => {
+      const printDate = new Date().toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      const dateElements = document.querySelectorAll('.print-date');
+      dateElements.forEach(el => {
+        el.textContent = `Printed: ${printDate}`;
+      });
+    });
+  </script>
+</body>
+</html>

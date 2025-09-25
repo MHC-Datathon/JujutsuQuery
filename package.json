@@ -1,0 +1,72 @@
+{
+  "name": "clearlane-initiative",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Data storytelling website for NYC bus enforcement analysis - CUNY student transforms commute into productive study time",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "check": "astro check",
+    "lint": "eslint . --ext .js,.ts,.astro",
+    "lint:fix": "eslint . --ext .js,.ts,.astro --fix",
+    "format": "prettier --write .",
+    "typecheck": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.7.0",
+    "@astrojs/react": "^3.6.0",
+    "@astrojs/tailwind": "^5.1.0",
+    "@astrojs/vercel": "^7.7.0",
+    "@types/d3": "^7.4.3",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "astro": "^4.11.5",
+    "chart.js": "^4.4.3",
+    "chartjs-adapter-date-fns": "^3.0.0",
+    "d3": "^7.9.0",
+    "d3-geo": "^3.1.1",
+    "d3-scale-chromatic": "^3.1.0",
+    "date-fns": "^3.6.0",
+    "leaflet": "^1.9.4",
+    "papaparse": "^5.4.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.5.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.13",
+    "@types/leaflet": "^1.9.12",
+    "@types/papaparse": "^5.3.14",
+    "@typescript-eslint/eslint-plugin": "^7.13.1",
+    "@typescript-eslint/parser": "^7.13.1",
+    "eslint": "^8.57.0",
+    "eslint-plugin-astro": "^1.2.2",
+    "prettier": "^3.3.2",
+    "prettier-plugin-astro": "^0.14.0"
+  },
+  "keywords": [
+    "nyc",
+    "bus",
+    "enforcement",
+    "cuny",
+    "student",
+    "transportation",
+    "data-visualization",
+    "policy",
+    "astro",
+    "tailwind"
+  ],
+  "author": "Abdul Basir - ClearLane Initiative",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/clearlane-initiative/clearlane-website"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

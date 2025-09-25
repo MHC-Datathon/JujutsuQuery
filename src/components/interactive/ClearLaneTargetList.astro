@@ -1,0 +1,848 @@
+---
+// ClearLane Target List - Priority locations with deployment strategy
+// Based on hotspot analysis and CUNY proximity for tactical enforcement
+export interface ClearLaneTargetProps {
+  maxTargets?: number;
+  showDeploymentCalendar?: boolean;
+  allowCustomPriority?: boolean;
+}
+
+interface Props extends ClearLaneTargetProps {}
+
+const {
+  maxTargets = 90,
+  showDeploymentCalendar = true,
+  allowCustomPriority = true
+} = Astro.props;
+---
+
+<div id="clearlane-target-list" class="w-full bg-white rounded-lg shadow-lg">
+  <!-- Header Section -->
+  <div class="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+    <div class="flex justify-between items-start mb-4">
+      <div>
+        <h3 class="text-2xl font-bold text-gray-900 mb-2">
+          ClearLane Deployment Strategy
+        </h3>
+        <p class="text-gray-600">
+          Surgical targeting of ~{maxTargets} priority locations during student commute hours
+        </p>
+      </div>
+
+      <div class="text-right">
+        <div class="text-3xl font-bold text-blue-600" id="total-targets">--</div>
+        <div class="text-sm text-gray-600">Priority Targets</div>
+      </div>
+    </div>
+
+    <!-- Strategy Overview -->
+    <div class="grid md:grid-cols-3 gap-4">
+      <div class="bg-white rounded-lg p-4 shadow-sm">
+        <div class="text-2xl font-bold text-red-600" id="critical-locations">--</div>
+        <div class="text-sm text-gray-600">Critical Locations</div>
+        <div class="text-xs text-gray-500">Near CUNY, >20k violations</div>
+      </div>
+
+      <div class="bg-white rounded-lg p-4 shadow-sm">
+        <div class="text-2xl font-bold text-orange-600" id="class-hour-targets">--</div>
+        <div class="text-sm text-gray-600">Class Hour Targets</div>
+        <div class="text-xs text-gray-500">8 AM - 6 PM priority</div>
+      </div>
+
+      <div class="bg-white rounded-lg p-4 shadow-sm">
+        <div class="text-2xl font-bold text-green-600" id="roi-estimate">--</div>
+        <div class="text-sm text-gray-600">Projected ROI</div>
+        <div class="text-xs text-gray-500">First year impact</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Control Panel -->
+  <div class="p-6 border-b border-gray-200 bg-gray-50">
+    <div class="flex flex-wrap gap-4 items-center">
+      <!-- Priority Filters -->
+      <div class="flex items-center gap-2">
+        <label for="priority-level" class="text-sm font-medium text-gray-700">Priority Level:</label>
+        <select id="priority-level" class="px-3 py-2 border border-gray-300 rounded-md text-sm">
+          <option value="all">All Priorities</option>
+          <option value="critical">Critical Only</option>
+          <option value="high">High Priority</option>
+          <option value="medium">Medium Priority</option>
+        </select>
+      </div>
+
+      <!-- Time Filter -->
+      <div class="flex items-center gap-2">
+        <label for="deployment-time" class="text-sm font-medium text-gray-700">Deployment Time:</label>
+        <select id="deployment-time" class="px-3 py-2 border border-gray-300 rounded-md text-sm">
+          <option value="all">All Hours</option>
+          <option value="class-hours">Class Hours (8AM-6PM)</option>
+          <option value="morning-rush">Morning Rush (7-9AM)</option>
+          <option value="evening-rush">Evening Rush (5-7PM)</option>
+        </select>
+      </div>
+
+      <!-- CUNY Filter -->
+      <div class="flex items-center gap-2">
+        <label for="cuny-proximity" class="text-sm font-medium text-gray-700">CUNY Proximity:</label>
+        <select id="cuny-proximity" class="px-3 py-2 border border-gray-300 rounded-md text-sm">
+          <option value="all">All Locations</option>
+          <option value="500m">Within 500m</option>
+          <option value="1km">Within 1km</option>
+          <option value="cuny-only">CUNY Routes Only</option>
+        </select>
+      </div>
+
+      <!-- Actions -->
+      <div class="ml-auto flex gap-2">
+        <button id="export-targets" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors">
+          Export Target List
+        </button>
+        <button id="generate-schedule" class="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors">
+          Generate Schedule
+        </button>
+        {allowCustomPriority && (
+          <button id="customize-priority" class="px-4 py-2 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 transition-colors">
+            Customize Priority
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <div class="flex">
+    <!-- Target List Panel -->
+    <div class="flex-1 p-6">
+      <div class="mb-4 flex justify-between items-center">
+        <h4 class="text-lg font-semibold">Priority Target Locations</h4>
+        <div class="flex items-center gap-2 text-sm text-gray-600">
+          <span>Showing</span>
+          <span id="showing-count" class="font-medium">--</span>
+          <span>of</span>
+          <span id="total-count" class="font-medium">--</span>
+          <span>targets</span>
+        </div>
+      </div>
+
+      <!-- Target List Table -->
+      <div class="overflow-hidden border border-gray-200 rounded-lg">
+        <div class="overflow-x-auto max-h-96">
+          <table class="min-w-full">
+            <thead class="bg-gray-50 sticky top-0">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onclick="window.clearLaneTargets?.sortBy('rank')">
+                  Rank
+                  <span id="sort-rank" class="ml-1">↕</span>
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onclick="window.clearLaneTargets?.sortBy('location')">
+                  Location
+                  <span id="sort-location" class="ml-1">↕</span>
+                </th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onclick="window.clearLaneTargets?.sortBy('violations')">
+                  Violations
+                  <span id="sort-violations" class="ml-1">↕</span>
+                </th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  CUNY Impact
+                </th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Priority
+                </th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onclick="window.clearLaneTargets?.sortBy('score')">
+                  ClearLane Score
+                  <span id="sort-score" class="ml-1">↕</span>
+                </th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody id="target-list-body" class="bg-white divide-y divide-gray-200">
+              <!-- Target rows will be populated by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    {showDeploymentCalendar && (
+      <!-- Deployment Calendar Panel -->
+      <div class="w-80 border-l border-gray-200 bg-gray-50">
+        <div class="p-4">
+          <h4 class="text-lg font-semibold mb-4">Deployment Calendar</h4>
+
+          <!-- Week View -->
+          <div class="mb-4">
+            <div class="text-sm font-medium text-gray-700 mb-2">This Week's Schedule</div>
+            <div id="week-calendar" class="space-y-2">
+              <!-- Calendar will be populated by JavaScript -->
+            </div>
+          </div>
+
+          <!-- Time Slots -->
+          <div class="mb-4">
+            <div class="text-sm font-medium text-gray-700 mb-2">Priority Time Slots</div>
+            <div id="time-slots" class="space-y-1 text-xs">
+              <!-- Time slots will be populated by JavaScript -->
+            </div>
+          </div>
+
+          <!-- Resource Requirements -->
+          <div class="bg-white rounded-lg p-3 shadow-sm">
+            <div class="text-sm font-medium text-gray-800 mb-2">Resource Requirements</div>
+            <div class="space-y-2 text-xs">
+              <div class="flex justify-between">
+                <span>Mobile Units:</span>
+                <span id="mobile-units" class="font-medium">--</span>
+              </div>
+              <div class="flex justify-between">
+                <span>Fixed Cameras:</span>
+                <span id="fixed-cameras" class="font-medium">--</span>
+              </div>
+              <div class="flex justify-between">
+                <span>Personnel Hours:</span>
+                <span id="personnel-hours" class="font-medium">-- hrs</span>
+              </div>
+              <div class="flex justify-between border-t pt-2">
+                <span>Weekly Cost:</span>
+                <span id="weekly-cost" class="font-medium text-green-600">$--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+
+  <!-- Target Detail Modal -->
+  <div id="target-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-screen overflow-y-auto">
+        <div class="p-6">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-xl font-bold" id="modal-location">Location Details</h3>
+            <button id="close-modal" class="text-gray-400 hover:text-gray-600">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div id="modal-content" class="space-y-6">
+            <!-- Content will be populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Priority Modal -->
+  {allowCustomPriority && (
+    <div id="custom-priority-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+      <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full">
+          <div class="p-6">
+            <h3 class="text-xl font-bold mb-4">Customize Priority Weights</h3>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Violation Count Weight: <span id="violation-weight-value">40%</span>
+                </label>
+                <input type="range" id="violation-weight" min="0" max="100" value="40"
+                       class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  CUNY Proximity Weight: <span id="cuny-weight-value">30%</span>
+                </label>
+                <input type="range" id="cuny-weight" min="0" max="100" value="30"
+                       class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Class Hours Impact Weight: <span id="time-weight-value">20%</span>
+                </label>
+                <input type="range" id="time-weight" min="0" max="100" value="20"
+                       class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Enforcement Efficiency Weight: <span id="efficiency-weight-value">10%</span>
+                </label>
+                <input type="range" id="efficiency-weight" min="0" max="100" value="10"
+                       class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+              </div>
+            </div>
+
+            <div class="mt-6 flex gap-3">
+              <button id="apply-weights" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                Apply Changes
+              </button>
+              <button id="reset-weights" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">
+                Reset to Default
+              </button>
+              <button id="close-priority-modal" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+</div>
+
+<script>
+  class ClearLaneTargetList {
+    constructor() {
+      this.hotspotData = [];
+      this.cunyData = [];
+      this.targetData = [];
+      this.filteredTargets = [];
+      this.sortField = 'rank';
+      this.sortDirection = 'asc';
+
+      // Default priority weights
+      this.weights = {
+        violations: 0.4,
+        cunyProximity: 0.3,
+        timeImpact: 0.2,
+        efficiency: 0.1
+      };
+
+      // CUNY campus locations for proximity calculations
+      this.cunyLocations = [
+        { name: 'Baruch College', lat: 40.7402, lng: -73.9836 },
+        { name: 'Hunter College', lat: 40.7685, lng: -73.9656 },
+        { name: 'City College', lat: 40.8200, lng: -73.9493 },
+        { name: 'Brooklyn College', lat: 40.6314, lng: -73.9521 },
+        { name: 'Queens College', lat: 40.7366, lng: -73.8170 },
+        { name: 'York College', lat: 40.7003, lng: -73.7967 },
+        { name: 'Lehman College', lat: 40.8732, lng: -73.8927 }
+      ];
+
+      this.init();
+    }
+
+    async init() {
+      await this.waitForDataLoader();
+      await this.loadData();
+      this.processTargetData();
+      this.setupEventListeners();
+      this.renderTargetList();
+      this.generateDeploymentCalendar();
+      this.updateStats();
+
+      // Make globally available for sorting
+      window.clearLaneTargets = this;
+    }
+
+    async waitForDataLoader() {
+      return new Promise((resolve) => {
+        if (window.ClearLaneData) {
+          resolve();
+        } else {
+          window.addEventListener('clearlane-data-ready', resolve);
+        }
+      });
+    }
+
+    async loadData() {
+      try {
+        this.hotspotData = await window.ClearLaneData.loadDataset('top_hotspots.csv');
+        this.cunyData = await window.ClearLaneData.loadDataset('CUNY_Insights/campus_summary_2025.csv');
+
+        console.log('Target list data loaded:', this.hotspotData.length, 'hotspots');
+      } catch (error) {
+        console.error('Failed to load target data:', error);
+      }
+    }
+
+    processTargetData() {
+      this.targetData = this.hotspotData.slice(0, 150).map((hotspot, index) => {
+        const distanceToCUNY = this.calculateDistanceToCUNY(hotspot.avg_lat, hotspot.avg_lon);
+        const clearLaneScore = this.calculateClearLaneScore(hotspot, distanceToCUNY);
+
+        return {
+          rank: index + 1,
+          location: hotspot.stop_name,
+          violations: hotspot.violations,
+          lat: hotspot.avg_lat,
+          lng: hotspot.avg_lon,
+          distanceToCUNY: distanceToCUNY,
+          cunyImpact: this.getCUNYImpactLevel(distanceToCUNY),
+          priority: this.getPriorityLevel(clearLaneScore),
+          clearLaneScore: clearLaneScore,
+          classHoursImpact: this.estimateClassHoursImpact(hotspot.violations, distanceToCUNY),
+          deploymentRecommendation: this.getDeploymentRecommendation(clearLaneScore, distanceToCUNY)
+        };
+      }).sort((a, b) => b.clearLaneScore - a.clearLaneScore);
+
+      // Re-rank after sorting
+      this.targetData.forEach((target, index) => {
+        target.rank = index + 1;
+      });
+
+      this.filteredTargets = this.targetData.slice(0, 90); // Default to top 90
+    }
+
+    calculateDistanceToCUNY(lat, lng) {
+      let minDistance = Infinity;
+
+      this.cunyLocations.forEach(campus => {
+        const distance = this.haversineDistance(lat, lng, campus.lat, campus.lng);
+        minDistance = Math.min(minDistance, distance);
+      });
+
+      return minDistance * 1000; // Convert to meters
+    }
+
+    haversineDistance(lat1, lng1, lat2, lng2) {
+      const R = 6371; // Earth's radius in km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    calculateClearLaneScore(hotspot, distanceToCUNY) {
+      // Normalize violation count (0-1)
+      const maxViolations = Math.max(...this.hotspotData.map(h => h.violations));
+      const violationScore = hotspot.violations / maxViolations;
+
+      // CUNY proximity score (higher score for closer proximity)
+      const proximityScore = Math.max(0, (2000 - distanceToCUNY) / 2000);
+
+      // Class hours impact score (mock calculation)
+      const timeScore = 0.7; // Assume 70% of violations during class hours
+
+      // Enforcement efficiency score (mock calculation)
+      const efficiencyScore = 0.3; // Assume current 30% efficiency
+
+      return (
+        violationScore * this.weights.violations +
+        proximityScore * this.weights.cunyProximity +
+        timeScore * this.weights.timeImpact +
+        efficiencyScore * this.weights.efficiency
+      );
+    }
+
+    getCUNYImpactLevel(distance) {
+      if (distance <= 250) return 'Critical';
+      if (distance <= 500) return 'High';
+      if (distance <= 1000) return 'Medium';
+      return 'Low';
+    }
+
+    getPriorityLevel(score) {
+      if (score >= 0.8) return 'Critical';
+      if (score >= 0.6) return 'High';
+      if (score >= 0.4) return 'Medium';
+      return 'Low';
+    }
+
+    estimateClassHoursImpact(violations, distance) {
+      const baseImpact = violations * 0.7; // Assume 70% during class hours
+      const proximityMultiplier = distance <= 500 ? 1.5 : 1.0;
+      return Math.round(baseImpact * proximityMultiplier);
+    }
+
+    getDeploymentRecommendation(score, distance) {
+      if (score >= 0.8 && distance <= 500) {
+        return 'Fixed Camera + Mobile Unit';
+      } else if (score >= 0.6) {
+        return 'Mobile Unit Priority';
+      } else if (score >= 0.4) {
+        return 'Periodic Patrol';
+      }
+      return 'Monitor Only';
+    }
+
+    setupEventListeners() {
+      // Filter controls
+      document.getElementById('priority-level')?.addEventListener('change', () => this.applyFilters());
+      document.getElementById('deployment-time')?.addEventListener('change', () => this.applyFilters());
+      document.getElementById('cuny-proximity')?.addEventListener('change', () => this.applyFilters());
+
+      // Action buttons
+      document.getElementById('export-targets')?.addEventListener('click', () => this.exportTargetList());
+      document.getElementById('generate-schedule')?.addEventListener('click', () => this.generateSchedule());
+      document.getElementById('customize-priority')?.addEventListener('click', () => this.showCustomPriorityModal());
+
+      // Modal controls
+      document.getElementById('close-modal')?.addEventListener('click', () => this.hideTargetModal());
+      document.getElementById('close-priority-modal')?.addEventListener('click', () => this.hideCustomPriorityModal());
+      document.getElementById('apply-weights')?.addEventListener('click', () => this.applyCustomWeights());
+      document.getElementById('reset-weights')?.addEventListener('click', () => this.resetWeights());
+
+      // Weight sliders
+      ['violation', 'cuny', 'time', 'efficiency'].forEach(type => {
+        const slider = document.getElementById(`${type}-weight`);
+        slider?.addEventListener('input', (e) => {
+          document.getElementById(`${type}-weight-value`).textContent = e.target.value + '%';
+        });
+      });
+    }
+
+    applyFilters() {
+      const priorityLevel = document.getElementById('priority-level')?.value || 'all';
+      const deploymentTime = document.getElementById('deployment-time')?.value || 'all';
+      const cunyProximity = document.getElementById('cuny-proximity')?.value || 'all';
+
+      this.filteredTargets = this.targetData.filter(target => {
+        // Priority filter
+        if (priorityLevel !== 'all' && target.priority.toLowerCase() !== priorityLevel) {
+          return false;
+        }
+
+        // CUNY proximity filter
+        if (cunyProximity !== 'all') {
+          if (cunyProximity === '500m' && target.distanceToCUNY > 500) return false;
+          if (cunyProximity === '1km' && target.distanceToCUNY > 1000) return false;
+          if (cunyProximity === 'cuny-only' && target.distanceToCUNY > 500) return false;
+        }
+
+        return true;
+      });
+
+      this.renderTargetList();
+      this.updateStats();
+    }
+
+    sortBy(field) {
+      if (this.sortField === field) {
+        this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        this.sortField = field;
+        this.sortDirection = 'asc';
+      }
+
+      this.filteredTargets.sort((a, b) => {
+        let aVal = a[field];
+        let bVal = b[field];
+
+        if (typeof aVal === 'string') {
+          aVal = aVal.toLowerCase();
+          bVal = bVal.toLowerCase();
+        }
+
+        if (this.sortDirection === 'asc') {
+          return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+        } else {
+          return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+        }
+      });
+
+      this.renderTargetList();
+      this.updateSortIndicators();
+    }
+
+    updateSortIndicators() {
+      // Reset all indicators
+      ['rank', 'location', 'violations', 'score'].forEach(field => {
+        const indicator = document.getElementById(`sort-${field}`);
+        if (indicator) indicator.textContent = '↕';
+      });
+
+      // Set active indicator
+      const activeIndicator = document.getElementById(`sort-${this.sortField}`);
+      if (activeIndicator) {
+        activeIndicator.textContent = this.sortDirection === 'asc' ? '↑' : '↓';
+      }
+    }
+
+    renderTargetList() {
+      const tbody = document.getElementById('target-list-body');
+      if (!tbody) return;
+
+      tbody.innerHTML = this.filteredTargets.map(target => `
+        <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.clearLaneTargets.showTargetDetails('${target.location}')">
+          <td class="px-4 py-3 text-sm">
+            <div class="flex items-center">
+              <span class="font-medium">#${target.rank}</span>
+            </div>
+          </td>
+          <td class="px-4 py-3 text-sm">
+            <div class="font-medium text-gray-900">${target.location}</div>
+            <div class="text-xs text-gray-500">${target.lat.toFixed(4)}, ${target.lng.toFixed(4)}</div>
+          </td>
+          <td class="px-4 py-3 text-sm text-right font-medium">
+            ${target.violations.toLocaleString()}
+          </td>
+          <td class="px-4 py-3 text-center">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              ${target.cunyImpact === 'Critical' ? 'bg-red-100 text-red-800' :
+                target.cunyImpact === 'High' ? 'bg-orange-100 text-orange-800' :
+                target.cunyImpact === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-gray-100 text-gray-800'}">
+              ${target.cunyImpact}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-center">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              ${target.priority === 'Critical' ? 'bg-red-100 text-red-800' :
+                target.priority === 'High' ? 'bg-orange-100 text-orange-800' :
+                target.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-gray-100 text-gray-800'}">
+              ${target.priority}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-center">
+            <div class="flex items-center justify-center">
+              <div class="w-12 h-2 bg-gray-200 rounded-full">
+                <div class="h-2 bg-blue-600 rounded-full" style="width: ${target.clearLaneScore * 100}%"></div>
+              </div>
+              <span class="ml-2 text-xs font-medium">${(target.clearLaneScore * 100).toFixed(0)}</span>
+            </div>
+          </td>
+          <td class="px-4 py-3 text-center">
+            <button class="text-blue-600 hover:text-blue-900 text-sm font-medium">
+              Deploy
+            </button>
+          </td>
+        </tr>
+      `).join('');
+
+      // Update counters
+      document.getElementById('showing-count').textContent = this.filteredTargets.length;
+      document.getElementById('total-count').textContent = this.targetData.length;
+    }
+
+    showTargetDetails(location) {
+      const target = this.filteredTargets.find(t => t.location === location);
+      if (!target) return;
+
+      document.getElementById('modal-location').textContent = target.location;
+
+      document.getElementById('modal-content').innerHTML = `
+        <div class="grid md:grid-cols-2 gap-6">
+          <div>
+            <h5 class="font-medium text-gray-800 mb-3">Location Details</h5>
+            <div class="space-y-2 text-sm">
+              <div><span class="font-medium">Rank:</span> #${target.rank}</div>
+              <div><span class="font-medium">Total Violations:</span> ${target.violations.toLocaleString()}</div>
+              <div><span class="font-medium">Distance to CUNY:</span> ${Math.round(target.distanceToCUNY)}m</div>
+              <div><span class="font-medium">Class Hours Impact:</span> ${target.classHoursImpact.toLocaleString()}</div>
+            </div>
+          </div>
+
+          <div>
+            <h5 class="font-medium text-gray-800 mb-3">Deployment Strategy</h5>
+            <div class="space-y-2 text-sm">
+              <div><span class="font-medium">Priority Level:</span> ${target.priority}</div>
+              <div><span class="font-medium">CUNY Impact:</span> ${target.cunyImpact}</div>
+              <div><span class="font-medium">ClearLane Score:</span> ${(target.clearLaneScore * 100).toFixed(0)}/100</div>
+              <div><span class="font-medium">Recommendation:</span> ${target.deploymentRecommendation}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+          <h6 class="font-medium text-blue-900 mb-2">Deployment Schedule Recommendation</h6>
+          <div class="text-sm text-blue-800">
+            <div><strong>Priority Hours:</strong> Monday-Friday, 7:00 AM - 9:00 AM, 5:00 PM - 7:00 PM</div>
+            <div><strong>Secondary Hours:</strong> Monday-Friday, 8:00 AM - 6:00 PM</div>
+            <div><strong>Resource Type:</strong> ${target.deploymentRecommendation}</div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('target-detail-modal').classList.remove('hidden');
+    }
+
+    hideTargetModal() {
+      document.getElementById('target-detail-modal').classList.add('hidden');
+    }
+
+    generateDeploymentCalendar() {
+      if (!document.getElementById('week-calendar')) return;
+
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const weekHTML = days.map(day => `
+        <div class="flex items-center justify-between p-2 bg-white rounded border text-sm">
+          <span class="font-medium">${day}</span>
+          <span class="text-blue-600">${day === 'Sat' || day === 'Sun' ? '8' : '15'} targets</span>
+        </div>
+      `).join('');
+
+      document.getElementById('week-calendar').innerHTML = weekHTML;
+
+      // Time slots
+      const timeSlots = [
+        { time: '7:00-9:00 AM', priority: 'High', targets: 25 },
+        { time: '9:00-3:00 PM', priority: 'Medium', targets: 40 },
+        { time: '3:00-6:00 PM', priority: 'High', targets: 30 },
+        { time: '6:00-7:00 PM', priority: 'Low', targets: 15 }
+      ];
+
+      document.getElementById('time-slots').innerHTML = timeSlots.map(slot => `
+        <div class="flex justify-between items-center">
+          <span>${slot.time}</span>
+          <span class="text-xs px-2 py-1 rounded
+            ${slot.priority === 'High' ? 'bg-red-100 text-red-800' :
+              slot.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-gray-100 text-gray-800'}">
+            ${slot.targets} targets
+          </span>
+        </div>
+      `).join('');
+    }
+
+    updateStats() {
+      const criticalCount = this.filteredTargets.filter(t => t.priority === 'Critical').length;
+      const classHourTargets = this.filteredTargets.filter(t => t.cunyImpact !== 'Low').length;
+
+      document.getElementById('total-targets').textContent = this.filteredTargets.length;
+      document.getElementById('critical-locations').textContent = criticalCount;
+      document.getElementById('class-hour-targets').textContent = classHourTargets;
+      document.getElementById('roi-estimate').textContent = '340%'; // Mock ROI
+
+      // Resource requirements
+      document.getElementById('mobile-units').textContent = Math.ceil(this.filteredTargets.length / 15);
+      document.getElementById('fixed-cameras').textContent = criticalCount;
+      document.getElementById('personnel-hours').textContent = this.filteredTargets.length * 4;
+      document.getElementById('weekly-cost').textContent = `$${(this.filteredTargets.length * 150).toLocaleString()}`;
+    }
+
+    showCustomPriorityModal() {
+      document.getElementById('custom-priority-modal')?.classList.remove('hidden');
+    }
+
+    hideCustomPriorityModal() {
+      document.getElementById('custom-priority-modal')?.classList.add('hidden');
+    }
+
+    applyCustomWeights() {
+      this.weights.violations = parseInt(document.getElementById('violation-weight').value) / 100;
+      this.weights.cunyProximity = parseInt(document.getElementById('cuny-weight').value) / 100;
+      this.weights.timeImpact = parseInt(document.getElementById('time-weight').value) / 100;
+      this.weights.efficiency = parseInt(document.getElementById('efficiency-weight').value) / 100;
+
+      // Recalculate scores and re-render
+      this.processTargetData();
+      this.renderTargetList();
+      this.hideCustomPriorityModal();
+    }
+
+    resetWeights() {
+      this.weights = { violations: 0.4, cunyProximity: 0.3, timeImpact: 0.2, efficiency: 0.1 };
+
+      document.getElementById('violation-weight').value = 40;
+      document.getElementById('cuny-weight').value = 30;
+      document.getElementById('time-weight').value = 20;
+      document.getElementById('efficiency-weight').value = 10;
+
+      document.getElementById('violation-weight-value').textContent = '40%';
+      document.getElementById('cuny-weight-value').textContent = '30%';
+      document.getElementById('time-weight-value').textContent = '20%';
+      document.getElementById('efficiency-weight-value').textContent = '10%';
+    }
+
+    exportTargetList() {
+      const csvContent = [
+        ['Rank', 'Location', 'Violations', 'CUNY Distance (m)', 'CUNY Impact', 'Priority', 'ClearLane Score', 'Deployment Recommendation'],
+        ...this.filteredTargets.map(t => [
+          t.rank,
+          t.location,
+          t.violations,
+          Math.round(t.distanceToCUNY),
+          t.cunyImpact,
+          t.priority,
+          (t.clearLaneScore * 100).toFixed(0),
+          t.deploymentRecommendation
+        ])
+      ].map(row => row.join(',')).join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `clearlane-target-list-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    generateSchedule() {
+      alert('Deployment schedule generated! Check your downloads for the detailed schedule.');
+    }
+  }
+
+  // Initialize when DOM is loaded
+  document.addEventListener('DOMContentLoaded', () => {
+    new ClearLaneTargetList();
+  });
+</script>
+
+<style>
+  /* Custom scrollbar */
+  .overflow-x-auto::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+  }
+
+  /* Table row hover effects */
+  tbody tr:hover {
+    background-color: #f8fafc;
+  }
+
+  /* Priority badge animations */
+  .inline-flex {
+    transition: all 0.2s ease;
+  }
+
+  /* Modal animations */
+  #target-detail-modal,
+  #custom-priority-modal {
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Range slider styling */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    border: none;
+  }
+</style>

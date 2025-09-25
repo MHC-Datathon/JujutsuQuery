@@ -1,0 +1,96 @@
+MTA Bus Automated Camera Enforcement Violations
+Data Dictionary
+Data Label
+
+Data
+
+Violation ID
+
+TEXT
+
+Vehicle ID
+
+TEXT
+
+First Occurrence
+
+Data Description
+
+Type
+
+DATE
+
+Unique identifier assigned for each violation.
+Hashed license plate number for the vehicle in
+violation. Can be used to identify repeat violators.
+Datetime of the first occurrence captured by the
+first bus.
+Datetime of the second occurrence captured by the
+
+Last Occurrence
+
+DATE
+
+Violation Status
+
+TEXT
+
+Event rejection reason or notice/document status.
+
+Violation Type
+
+TEXT
+
+Bus stop, bus lane, double parked
+
+second bus.
+
+Bus Route ID that the violation occurred on. Some
+Bus Route ID
+
+TEXT
+
+bus routes overlap, see the overview
+documentation for more information.
+The approximate latitude of the captured violation,
+
+Violation Latitude
+
+NUMERIC
+
+based on the latitude of the second bus that observes
+the event.
+The approximate longitude of the captured violation,
+
+Violation Longitude
+
+NUMERIC
+
+based on the longitude of the second bus that
+observes the event.
+
+Stop ID
+
+TEXT
+
+The bus stop ID of the closest previous bus stop.
+
+Stop Name
+
+TEXT
+
+The corresponding bus stop name.
+
+Bus Stop Latitude
+
+NUMERIC
+
+Latitude for the bus stop.
+
+Bus Stop Longitude
+
+NUMERIC
+
+Longitude for the bus stop.
+
+

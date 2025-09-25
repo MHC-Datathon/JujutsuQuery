@@ -1,0 +1,535 @@
+---
+// Personal Journey Timeline - BxM10 commute story with data overlay
+// Shows how violations affect the "rolling study hall" experience
+export interface JourneyTimelineProps {
+  routeId?: string;
+  studentName?: string;
+  showControls?: boolean;
+}
+
+interface Props extends JourneyTimelineProps {}
+
+const {
+  routeId = 'BxM10',
+  studentName = 'Alex',
+  showControls = true
+} = Astro.props;
+---
+
+<div id="personal-journey-timeline" class="w-full bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 shadow-lg">
+  <div class="mb-6">
+    <h3 class="text-2xl font-bold text-gray-900 mb-2">
+      The Rolling Study Hall: {studentName}'s {routeId} Journey
+    </h3>
+    <p class="text-gray-600">
+      How bus violations transform a 2-hour commute from burden to opportunity—and back to burden again.
+    </p>
+  </div>
+
+  {showControls && (
+    <div class="mb-6 flex flex-wrap gap-4">
+      <div class="flex items-center gap-2">
+        <label for="time-period" class="text-sm font-medium text-gray-700">Time Period:</label>
+        <select id="time-period" class="px-3 py-1 border border-gray-300 rounded-md text-sm">
+          <option value="typical">Typical Day</option>
+          <option value="violation-heavy">High Violation Day</option>
+          <option value="optimal">Low Violation Day</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-2">
+        <label for="direction" class="text-sm font-medium text-gray-700">Direction:</label>
+        <select id="direction" class="px-3 py-1 border border-gray-300 rounded-md text-sm">
+          <option value="to-campus">To Campus (Morning)</option>
+          <option value="from-campus">From Campus (Evening)</option>
+        </select>
+      </div>
+      <button id="play-journey" class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors">
+        ▶ Play Journey
+      </button>
+    </div>
+  )}
+
+  <!-- Timeline Container -->
+  <div class="relative">
+    <!-- Timeline Background -->
+    <div id="timeline-bg" class="w-full h-4 bg-gray-200 rounded-full relative overflow-hidden">
+      <div id="progress-bar" class="h-full bg-blue-600 rounded-full transition-all duration-300" style="width: 0%"></div>
+    </div>
+
+    <!-- Timeline Markers -->
+    <div id="timeline-markers" class="relative mt-4">
+      <!-- Markers will be populated by JavaScript -->
+    </div>
+
+    <!-- Main Visualization Area -->
+    <div class="mt-8 grid md:grid-cols-2 gap-6">
+      <!-- Journey Narrative Panel -->
+      <div class="bg-white rounded-lg p-6 shadow-sm">
+        <h4 class="text-lg font-semibold mb-4">Journey Progress</h4>
+        <div id="journey-narrative" class="space-y-4">
+          <div id="current-segment" class="p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
+            <div class="font-medium text-blue-900" id="segment-title">Starting Journey...</div>
+            <div class="text-sm text-blue-700 mt-1" id="segment-description">
+              Preparing for the commute to campus
+            </div>
+          </div>
+
+          <div id="study-stats" class="grid grid-cols-3 gap-4 text-center">
+            <div class="p-3 bg-green-50 rounded">
+              <div class="text-2xl font-bold text-green-600" id="study-time">0</div>
+              <div class="text-xs text-green-600">Study Minutes</div>
+            </div>
+            <div class="p-3 bg-red-50 rounded">
+              <div class="text-2xl font-bold text-red-600" id="delay-time">0</div>
+              <div class="text-xs text-red-600">Delay Minutes</div>
+            </div>
+            <div class="p-3 bg-blue-50 rounded">
+              <div class="text-2xl font-bold text-blue-600" id="violation-count">0</div>
+              <div class="text-xs text-blue-600">Violations</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Real-time Data Panel -->
+      <div class="bg-white rounded-lg p-6 shadow-sm">
+        <h4 class="text-lg font-semibold mb-4">Live Data Impact</h4>
+        <div id="data-visualization">
+          <!-- Speed Chart -->
+          <div class="mb-6">
+            <h5 class="text-sm font-medium text-gray-700 mb-2">Bus Speed vs Time</h5>
+            <div id="speed-chart" class="h-32 bg-gray-50 rounded flex items-center justify-center">
+              <span class="text-gray-500">Loading speed data...</span>
+            </div>
+          </div>
+
+          <!-- Violation Heatmap -->
+          <div>
+            <h5 class="text-sm font-medium text-gray-700 mb-2">Violation Hotspots Along Route</h5>
+            <div id="violation-heatmap" class="h-24 bg-gray-50 rounded flex items-center justify-center">
+              <span class="text-gray-500">Loading violation data...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Journey Phases -->
+    <div class="mt-8">
+      <h4 class="text-lg font-semibold mb-4">Journey Impact Analysis</h4>
+      <div class="grid md:grid-cols-4 gap-4">
+        <div class="text-center p-4 bg-white rounded-lg shadow-sm border-2 border-transparent" id="phase-boarding">
+          <div class="text-2xl mb-2">🚌</div>
+          <div class="font-medium">Boarding</div>
+          <div class="text-sm text-gray-600 mt-1">Finding a seat</div>
+          <div class="text-xs text-green-600 mt-2" id="boarding-efficiency">Normal</div>
+        </div>
+
+        <div class="text-center p-4 bg-white rounded-lg shadow-sm border-2 border-transparent" id="phase-study">
+          <div class="text-2xl mb-2">📚</div>
+          <div class="font-medium">Study Mode</div>
+          <div class="text-sm text-gray-600 mt-1">Peak productivity</div>
+          <div class="text-xs text-green-600 mt-2" id="study-efficiency">High Focus</div>
+        </div>
+
+        <div class="text-center p-4 bg-white rounded-lg shadow-sm border-2 border-transparent" id="phase-disruption">
+          <div class="text-2xl mb-2">⚠️</div>
+          <div class="font-medium">Disruptions</div>
+          <div class="text-sm text-gray-600 mt-1">Traffic conflicts</div>
+          <div class="text-xs text-red-600 mt-2" id="disruption-level">Moderate</div>
+        </div>
+
+        <div class="text-center p-4 bg-white rounded-lg shadow-sm border-2 border-transparent" id="phase-arrival">
+          <div class="text-2xl mb-2">🎓</div>
+          <div class="font-medium">Arrival</div>
+          <div class="text-sm text-gray-600 mt-1">Ready for class</div>
+          <div class="text-xs text-blue-600 mt-2" id="arrival-readiness">Prepared</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  class PersonalJourneyTimeline {
+    constructor() {
+      this.currentProgress = 0;
+      this.journeyData = null;
+      this.animationId = null;
+      this.isPlaying = false;
+
+      this.segments = [
+        {
+          id: 'boarding',
+          title: 'Boarding the BxM10',
+          description: 'Finding a good seat near the window for studying',
+          duration: 5,
+          studyTime: 0,
+          phase: 'boarding'
+        },
+        {
+          id: 'initial-study',
+          title: 'Setting Up Study Space',
+          description: 'Opening textbooks, organizing notes, settling in',
+          duration: 10,
+          studyTime: 8,
+          phase: 'study'
+        },
+        {
+          id: 'productive-study',
+          title: 'Deep Focus Study Session',
+          description: 'Reading, highlighting, taking notes - peak productivity',
+          duration: 45,
+          studyTime: 42,
+          phase: 'study'
+        },
+        {
+          id: 'first-disruption',
+          title: 'Traffic Delay at Hotspot',
+          description: 'Bus lane violation causes 8-minute delay, concentration broken',
+          duration: 15,
+          studyTime: 5,
+          phase: 'disruption'
+        },
+        {
+          id: 'recovery-study',
+          title: 'Refocusing on Studies',
+          description: 'Getting back into the flow, reviewing previous material',
+          duration: 20,
+          studyTime: 15,
+          phase: 'study'
+        },
+        {
+          id: 'major-disruption',
+          title: 'Multiple Violations Cluster',
+          description: 'Series of bus lane violations create 12-minute standstill',
+          duration: 18,
+          studyTime: 0,
+          phase: 'disruption'
+        },
+        {
+          id: 'final-study',
+          title: 'Last Study Push',
+          description: 'Trying to review key concepts before arrival',
+          duration: 15,
+          studyTime: 10,
+          phase: 'study'
+        },
+        {
+          id: 'arrival',
+          title: 'Arriving at Campus',
+          description: 'Packing up, preparing for first class',
+          duration: 7,
+          studyTime: 0,
+          phase: 'arrival'
+        }
+      ];
+
+      this.init();
+    }
+
+    async init() {
+      await this.waitForDataLoader();
+      this.setupEventListeners();
+      this.loadJourneyData();
+      this.renderTimelineMarkers();
+      this.updateJourneyNarrative();
+    }
+
+    async waitForDataLoader() {
+      return new Promise((resolve) => {
+        if (window.ClearLaneData) {
+          resolve();
+        } else {
+          window.addEventListener('clearlane-data-ready', resolve);
+        }
+      });
+    }
+
+    setupEventListeners() {
+      const playButton = document.getElementById('play-journey');
+      const timePeriodSelect = document.getElementById('time-period');
+      const directionSelect = document.getElementById('direction');
+
+      playButton?.addEventListener('click', () => this.toggleJourneyPlayback());
+      timePeriodSelect?.addEventListener('change', () => this.updateJourneyScenario());
+      directionSelect?.addEventListener('change', () => this.updateJourneyScenario());
+    }
+
+    async loadJourneyData() {
+      try {
+        // Load route-specific data
+        const routeData = await window.ClearLaneData.loadDataset('route_counts.csv');
+        const hotspotData = await window.ClearLaneData.loadDataset('top_hotspots.csv');
+
+        // Filter for BxM10 route (or specified route)
+        this.journeyData = {
+          route: routeData.filter(d => d.bus_route_id?.includes('BX')),
+          hotspots: hotspotData.slice(0, 20) // Top 20 hotspots
+        };
+
+        console.log('Journey data loaded:', this.journeyData);
+      } catch (error) {
+        console.error('Failed to load journey data:', error);
+      }
+    }
+
+    renderTimelineMarkers() {
+      const markersContainer = document.getElementById('timeline-markers');
+      if (!markersContainer) return;
+
+      let totalDuration = this.segments.reduce((sum, segment) => sum + segment.duration, 0);
+      let currentPosition = 0;
+
+      markersContainer.innerHTML = this.segments.map((segment, index) => {
+        const leftPercent = (currentPosition / totalDuration) * 100;
+        const widthPercent = (segment.duration / totalDuration) * 100;
+        currentPosition += segment.duration;
+
+        const phaseColor = {
+          'boarding': 'bg-blue-500',
+          'study': 'bg-green-500',
+          'disruption': 'bg-red-500',
+          'arrival': 'bg-purple-500'
+        }[segment.phase] || 'bg-gray-500';
+
+        return `
+          <div class="absolute h-8 ${phaseColor} opacity-30 rounded cursor-pointer hover:opacity-50 transition-opacity"
+               style="left: ${leftPercent}%; width: ${widthPercent}%"
+               data-segment-index="${index}"
+               title="${segment.title}">
+          </div>
+        `;
+      }).join('');
+
+      // Add click listeners to markers
+      markersContainer.addEventListener('click', (e) => {
+        const segmentIndex = e.target.dataset.segmentIndex;
+        if (segmentIndex !== undefined) {
+          this.jumpToSegment(parseInt(segmentIndex));
+        }
+      });
+    }
+
+    toggleJourneyPlayback() {
+      if (this.isPlaying) {
+        this.pauseJourney();
+      } else {
+        this.playJourney();
+      }
+    }
+
+    playJourney() {
+      this.isPlaying = true;
+      document.getElementById('play-journey').textContent = '⏸ Pause Journey';
+
+      const animate = () => {
+        if (!this.isPlaying) return;
+
+        this.currentProgress += 0.5; // Adjust speed as needed
+        this.updateProgress();
+
+        if (this.currentProgress >= 100) {
+          this.pauseJourney();
+          return;
+        }
+
+        this.animationId = requestAnimationFrame(animate);
+      };
+
+      animate();
+    }
+
+    pauseJourney() {
+      this.isPlaying = false;
+      document.getElementById('play-journey').textContent = '▶ Play Journey';
+
+      if (this.animationId) {
+        cancelAnimationFrame(this.animationId);
+      }
+    }
+
+    jumpToSegment(segmentIndex) {
+      const totalDuration = this.segments.reduce((sum, segment) => sum + segment.duration, 0);
+      const segmentStart = this.segments.slice(0, segmentIndex).reduce((sum, segment) => sum + segment.duration, 0);
+
+      this.currentProgress = (segmentStart / totalDuration) * 100;
+      this.updateProgress();
+    }
+
+    updateProgress() {
+      const progressBar = document.getElementById('progress-bar');
+      if (progressBar) {
+        progressBar.style.width = `${this.currentProgress}%`;
+      }
+
+      this.updateCurrentSegment();
+      this.updateStats();
+      this.updatePhaseHighlights();
+    }
+
+    updateCurrentSegment() {
+      const totalDuration = this.segments.reduce((sum, segment) => sum + segment.duration, 0);
+      const currentTime = (this.currentProgress / 100) * totalDuration;
+
+      let accumulatedTime = 0;
+      let currentSegment = null;
+
+      for (const segment of this.segments) {
+        if (currentTime >= accumulatedTime && currentTime < accumulatedTime + segment.duration) {
+          currentSegment = segment;
+          break;
+        }
+        accumulatedTime += segment.duration;
+      }
+
+      if (currentSegment) {
+        const segmentTitle = document.getElementById('segment-title');
+        const segmentDescription = document.getElementById('segment-description');
+
+        if (segmentTitle) segmentTitle.textContent = currentSegment.title;
+        if (segmentDescription) segmentDescription.textContent = currentSegment.description;
+      }
+    }
+
+    updateStats() {
+      const totalDuration = this.segments.reduce((sum, segment) => sum + segment.duration, 0);
+      const currentTime = (this.currentProgress / 100) * totalDuration;
+
+      let totalStudyTime = 0;
+      let totalDelayTime = 0;
+      let violationCount = 0;
+
+      let accumulatedTime = 0;
+      for (const segment of this.segments) {
+        const segmentEndTime = accumulatedTime + segment.duration;
+
+        if (currentTime >= segmentEndTime) {
+          // Full segment completed
+          totalStudyTime += segment.studyTime;
+          if (segment.phase === 'disruption') {
+            totalDelayTime += segment.duration;
+            violationCount += Math.floor(segment.duration / 3); // Rough estimate
+          }
+        } else if (currentTime > accumulatedTime) {
+          // Partial segment
+          const completionRatio = (currentTime - accumulatedTime) / segment.duration;
+          totalStudyTime += segment.studyTime * completionRatio;
+          if (segment.phase === 'disruption') {
+            totalDelayTime += segment.duration * completionRatio;
+            violationCount += Math.floor(segment.duration * completionRatio / 3);
+          }
+          break;
+        }
+
+        accumulatedTime = segmentEndTime;
+      }
+
+      // Update display
+      document.getElementById('study-time').textContent = Math.round(totalStudyTime);
+      document.getElementById('delay-time').textContent = Math.round(totalDelayTime);
+      document.getElementById('violation-count').textContent = violationCount;
+    }
+
+    updatePhaseHighlights() {
+      const phases = ['boarding', 'study', 'disruption', 'arrival'];
+      const totalDuration = this.segments.reduce((sum, segment) => sum + segment.duration, 0);
+      const currentTime = (this.currentProgress / 100) * totalDuration;
+
+      let accumulatedTime = 0;
+      let currentPhase = null;
+
+      for (const segment of this.segments) {
+        if (currentTime >= accumulatedTime && currentTime < accumulatedTime + segment.duration) {
+          currentPhase = segment.phase;
+          break;
+        }
+        accumulatedTime += segment.duration;
+      }
+
+      // Highlight current phase
+      phases.forEach(phase => {
+        const element = document.getElementById(`phase-${phase}`);
+        if (element) {
+          if (phase === currentPhase) {
+            element.classList.add('border-blue-500', 'bg-blue-50');
+            element.classList.remove('border-transparent');
+          } else {
+            element.classList.remove('border-blue-500', 'bg-blue-50');
+            element.classList.add('border-transparent');
+          }
+        }
+      });
+    }
+
+    updateJourneyNarrative() {
+      // This would be called when scenario changes
+      console.log('Updating journey narrative for scenario changes');
+    }
+
+    updateJourneyScenario() {
+      const timePeriod = document.getElementById('time-period')?.value;
+      const direction = document.getElementById('direction')?.value;
+
+      // Adjust segments based on scenario
+      if (timePeriod === 'violation-heavy') {
+        // Increase disruption durations
+        this.segments.forEach(segment => {
+          if (segment.phase === 'disruption') {
+            segment.duration *= 1.5;
+            segment.studyTime *= 0.3;
+          }
+        });
+      } else if (timePeriod === 'optimal') {
+        // Reduce disruptions
+        this.segments.forEach(segment => {
+          if (segment.phase === 'disruption') {
+            segment.duration *= 0.5;
+            segment.studyTime *= 1.2;
+          }
+        });
+      }
+
+      // Reset and update timeline
+      this.currentProgress = 0;
+      this.renderTimelineMarkers();
+      this.updateProgress();
+    }
+  }
+
+  // Initialize the timeline when the DOM is loaded
+  document.addEventListener('DOMContentLoaded', () => {
+    new PersonalJourneyTimeline();
+  });
+</script>
+
+<style>
+  /* Additional styles for smooth animations */
+  #timeline-markers {
+    position: relative;
+    height: 32px;
+  }
+
+  .segment-marker {
+    transition: opacity 0.3s ease;
+  }
+
+  #journey-narrative {
+    min-height: 200px;
+  }
+
+  .phase-card {
+    transition: all 0.3s ease;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    #timeline-markers {
+      height: 24px;
+    }
+
+    .phase-card {
+      padding: 0.75rem;
+    }
+  }
+</style>

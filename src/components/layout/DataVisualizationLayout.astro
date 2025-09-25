@@ -1,0 +1,587 @@
+---
+/**
+ * Responsive layout for data visualizations
+ * Optimized for accessibility, performance, and mobile experience
+ */
+
+export interface Props {
+  title?: string;
+  description?: string;
+  layout?: 'single' | 'split' | 'grid' | 'story';
+  stickyNavigation?: boolean;
+  className?: string;
+}
+
+const {
+  title,
+  description,
+  layout = 'single',
+  stickyNavigation = false,
+  className = '',
+} = Astro.props;
+
+const layoutClass = `viz-layout-${layout}`;
+---
+
+<section
+  class={`data-visualization-section ${layoutClass} ${className}`}
+  role="region"
+  aria-labelledby={title ? "section-title" : undefined}
+  aria-describedby={description ? "section-description" : undefined}
+>
+  {title && (
+    <header class="section-header">
+      <h2 id="section-title" class="section-title">{title}</h2>
+      {description && (
+        <p id="section-description" class="section-description">
+          {description}
+        </p>
+      )}
+    </header>
+  )}
+
+  {stickyNavigation && (
+    <nav class="sticky-nav" aria-label="Data visualization navigation">
+      <slot name="navigation" />
+    </nav>
+  )}
+
+  <div class="visualization-content">
+    <div class="main-content">
+      <slot />
+    </div>
+
+    {layout === 'split' && (
+      <aside class="sidebar-content" role="complementary">
+        <slot name="sidebar" />
+      </aside>
+    )}
+  </div>
+
+  <footer class="section-footer">
+    <slot name="footer" />
+  </footer>
+</section>
+
+<style>
+  .data-visualization-section {
+    --content-max-width: 1200px;
+    --sidebar-width: 300px;
+    --spacing-unit: 1rem;
+    --border-radius: 8px;
+
+    width: 100%;
+    margin: 2rem auto;
+    padding: 0 var(--spacing-unit);
+    max-width: var(--content-max-width);
+  }
+
+  /* Section Header */
+  .section-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--color-border);
+  }
+
+  .section-title {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0 0 1rem 0;
+    line-height: 1.2;
+  }
+
+  .section-description {
+    font-size: 1.1rem;
+    color: var(--color-text-secondary);
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* Sticky Navigation */
+  .sticky-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: 2rem;
+    padding: 1rem 0;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+  }
+
+  /* Layout Variants */
+
+  /* Single Column Layout */
+  .viz-layout-single .visualization-content {
+    display: block;
+  }
+
+  /* Split Layout (Content + Sidebar) */
+  .viz-layout-split .visualization-content {
+    display: grid;
+    grid-template-columns: 1fr var(--sidebar-width);
+    gap: 2rem;
+    align-items: start;
+  }
+
+  .sidebar-content {
+    background: var(--color-gray-50);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    border: 1px solid var(--color-border);
+    position: sticky;
+    top: 2rem;
+    max-height: calc(100vh - 4rem);
+    overflow-y: auto;
+  }
+
+  /* Grid Layout */
+  .viz-layout-grid .visualization-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+  }
+
+  /* Story Layout (Narrative Flow) */
+  .viz-layout-story .visualization-content {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+  }
+
+  .viz-layout-story .main-content {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  /* Main Content */
+  .main-content {
+    min-height: 400px;
+  }
+
+  /* Section Footer */
+  .section-footer {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-border);
+    text-align: center;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 1024px) {
+    .viz-layout-split .visualization-content {
+      grid-template-columns: 1fr;
+    }
+
+    .sidebar-content {
+      position: static;
+      max-height: none;
+      order: 2;
+    }
+
+    .viz-layout-grid .visualization-content {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .data-visualization-section {
+      margin: 1rem auto;
+      padding: 0 0.5rem;
+    }
+
+    .section-header {
+      margin-bottom: 2rem;
+    }
+
+    .sticky-nav {
+      margin: 0 -0.5rem 1rem;
+      border-radius: 0;
+    }
+
+    .viz-layout-grid .visualization-content {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .visualization-content {
+      gap: 1rem;
+    }
+
+    .sidebar-content {
+      padding: 1rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .section-title {
+      font-size: 1.5rem;
+    }
+
+    .section-description {
+      font-size: 1rem;
+    }
+  }
+
+  /* High Contrast Mode Support */
+  @media (prefers-contrast: high) {
+    .section-header {
+      border-bottom-width: 3px;
+    }
+
+    .sticky-nav {
+      border-bottom-width: 2px;
+      background: white;
+    }
+
+    .sidebar-content {
+      border-width: 2px;
+    }
+  }
+
+  /* Reduced Motion Support */
+  @media (prefers-reduced-motion: reduce) {
+    .sticky-nav {
+      backdrop-filter: none;
+    }
+  }
+
+  /* Print Styles */
+  @media print {
+    .data-visualization-section {
+      max-width: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .sticky-nav {
+      position: static;
+      background: white;
+      border: none;
+    }
+
+    .viz-layout-split .visualization-content,
+    .viz-layout-grid .visualization-content {
+      grid-template-columns: 1fr;
+    }
+
+    .sidebar-content {
+      position: static;
+      background: white;
+      border: 1px solid black;
+      page-break-inside: avoid;
+    }
+  }
+
+  /* Focus Management */
+  .skip-to-content {
+    position: absolute;
+    top: -40px;
+    left: 6px;
+    background: var(--color-accent);
+    color: white;
+    padding: 8px;
+    text-decoration: none;
+    border-radius: 4px;
+    z-index: 1000;
+    transition: top 0.2s;
+  }
+
+  .skip-to-content:focus {
+    top: 6px;
+  }
+
+  /* Loading States */
+  .visualization-content.loading {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  .visualization-content.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 32px;
+    height: 32px;
+    margin: -16px 0 0 -16px;
+    border: 3px solid var(--color-border);
+    border-top-color: var(--color-accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Error States */
+  .visualization-content.error {
+    background: #fef2f2;
+    border: 2px solid #fecaca;
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    text-align: center;
+    color: #dc2626;
+  }
+
+  /* Accessibility Enhancements */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Custom scrollbar for sidebar */
+  .sidebar-content::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .sidebar-content::-webkit-scrollbar-track {
+    background: var(--color-gray-100);
+    border-radius: 3px;
+  }
+
+  .sidebar-content::-webkit-scrollbar-thumb {
+    background: var(--color-gray-400);
+    border-radius: 3px;
+  }
+
+  .sidebar-content::-webkit-scrollbar-thumb:hover {
+    background: var(--color-gray-500);
+  }
+
+  /* Animation for content appearance */
+  .main-content > * {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+
+  .main-content > *:nth-child(2) {
+    animation-delay: 0.1s;
+  }
+
+  .main-content > *:nth-child(3) {
+    animation-delay: 0.2s;
+  }
+
+  @keyframes fadeInUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .main-content > * {
+      opacity: 1;
+      transform: none;
+      animation: none;
+    }
+  }
+</style>
+
+<script>
+  // Progressive enhancement for layout functionality
+  document.addEventListener('DOMContentLoaded', () => {
+    initializeDataVisualizationLayout();
+  });
+
+  function initializeDataVisualizationLayout() {
+    // Handle sticky navigation behavior
+    const stickyNavs = document.querySelectorAll('.sticky-nav');
+    stickyNavs.forEach(nav => {
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          nav.classList.toggle('is-stuck', !entry.isIntersecting);
+        },
+        { threshold: 1 }
+      );
+
+      observer.observe(nav.previousElementSibling || nav);
+    });
+
+    // Handle responsive sidebar behavior
+    const splitLayouts = document.querySelectorAll('.viz-layout-split');
+    splitLayouts.forEach(layout => {
+      const sidebar = layout.querySelector('.sidebar-content');
+      if (sidebar) {
+        // Add toggle button for mobile
+        addSidebarToggle(sidebar);
+      }
+    });
+
+    // Handle loading states
+    const visualizationSections = document.querySelectorAll('.data-visualization-section');
+    visualizationSections.forEach(section => {
+      const content = section.querySelector('.visualization-content');
+      if (content) {
+        // Listen for custom loading events
+        section.addEventListener('viz-loading', () => {
+          content.classList.add('loading');
+        });
+
+        section.addEventListener('viz-loaded', () => {
+          content.classList.remove('loading');
+        });
+
+        section.addEventListener('viz-error', (event: any) => {
+          content.classList.remove('loading');
+          content.classList.add('error');
+          content.innerHTML = `
+            <div>
+              <h3>Visualization Error</h3>
+              <p>${event.detail?.message || 'Unable to load data visualization'}</p>
+              <button onclick="location.reload()">Retry</button>
+            </div>
+          `;
+        });
+      }
+    });
+
+    // Skip to content functionality
+    addSkipToContent();
+
+    // Keyboard navigation enhancements
+    enhanceKeyboardNavigation();
+  }
+
+  function addSidebarToggle(sidebar: Element) {
+    if (window.innerWidth <= 1024) {
+      const toggle = document.createElement('button');
+      toggle.className = 'sidebar-toggle';
+      toggle.innerHTML = '📊 Analysis Details';
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-controls', sidebar.id || 'sidebar');
+
+      // Insert toggle before sidebar
+      sidebar.parentNode?.insertBefore(toggle, sidebar);
+
+      // Initially hide sidebar on mobile
+      sidebar.classList.add('mobile-hidden');
+
+      toggle.addEventListener('click', () => {
+        const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+        toggle.setAttribute('aria-expanded', (!isExpanded).toString());
+        sidebar.classList.toggle('mobile-hidden');
+        toggle.textContent = isExpanded ? '📊 Analysis Details' : '✕ Close Details';
+      });
+    }
+  }
+
+  function addSkipToContent() {
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent && !mainContent.id) {
+      mainContent.id = 'main-content';
+    }
+
+    // Add skip link to each section
+    const sections = document.querySelectorAll('.data-visualization-section');
+    sections.forEach((section, index) => {
+      const skipLink = document.createElement('a');
+      skipLink.href = `#main-content`;
+      skipLink.className = 'skip-to-content';
+      skipLink.textContent = 'Skip to visualization';
+      section.insertBefore(skipLink, section.firstChild);
+    });
+  }
+
+  function enhanceKeyboardNavigation() {
+    // Trap focus within modal-like sidebar content
+    const sidebars = document.querySelectorAll('.sidebar-content');
+    sidebars.forEach(sidebar => {
+      sidebar.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          const toggle = sidebar.parentNode?.querySelector('.sidebar-toggle') as HTMLButtonElement;
+          if (toggle && sidebar.classList.contains('mobile-hidden') === false) {
+            toggle.click();
+            toggle.focus();
+          }
+        }
+      });
+    });
+
+    // Enhanced focus management for sticky navigation
+    const stickyNavs = document.querySelectorAll('.sticky-nav');
+    stickyNavs.forEach(nav => {
+      // Ensure focusable elements in sticky nav are properly handled
+      const focusableElements = nav.querySelectorAll(
+        'a, button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+
+      focusableElements.forEach(element => {
+        element.addEventListener('focus', () => {
+          // Ensure the focused element is visible
+          element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+      });
+    });
+  }
+
+  // Utility function to emit custom events
+  function emitVisualizationEvent(element: Element, eventName: string, detail?: any) {
+    const event = new CustomEvent(eventName, { detail });
+    element.dispatchEvent(event);
+  }
+
+  // Export utility functions for use by visualization components
+  (window as any).VisualizationLayout = {
+    emitLoading: (element: Element) => emitVisualizationEvent(element, 'viz-loading'),
+    emitLoaded: (element: Element) => emitVisualizationEvent(element, 'viz-loaded'),
+    emitError: (element: Element, message: string) =>
+      emitVisualizationEvent(element, 'viz-error', { message }),
+  };
+</script>
+
+<style is:global>
+  /* Mobile sidebar styles */
+  .sidebar-toggle {
+    display: none;
+    width: 100%;
+    padding: 1rem;
+    background: var(--color-accent);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 1rem;
+    transition: background-color 0.2s;
+  }
+
+  .sidebar-toggle:hover {
+    background: var(--color-accent-dark);
+  }
+
+  @media (max-width: 1024px) {
+    .sidebar-toggle {
+      display: block;
+    }
+
+    .sidebar-content.mobile-hidden {
+      display: none;
+    }
+  }
+
+  /* Sticky navigation enhancements */
+  .sticky-nav.is-stuck {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Animation for sticky state */
+  .sticky-nav {
+    transition: box-shadow 0.3s ease;
+  }
+</style>

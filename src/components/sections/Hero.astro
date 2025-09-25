@@ -1,0 +1,433 @@
+---
+/**
+ * Hero Section Component for ClearLane Initiative
+ * Compelling visual storytelling with personal narrative hook
+ */
+
+export interface Props {
+  title: string;
+  subtitle?: string;
+  description: string;
+  ctaText?: string;
+  ctaHref?: string;
+  secondaryCtaText?: string;
+  secondaryCtaHref?: string;
+  backgroundImage?: string;
+  backgroundVideo?: string;
+  variant?: 'default' | 'personal' | 'data' | 'solution';
+  stats?: Array<{ value: string; label: string; description?: string }>;
+}
+
+const {
+  title,
+  subtitle,
+  description,
+  ctaText = 'Take Action',
+  ctaHref = '/contact',
+  secondaryCtaText,
+  secondaryCtaHref,
+  backgroundImage,
+  backgroundVideo,
+  variant = 'default',
+  stats = []
+} = Astro.props;
+
+const heroClasses = {
+  default: 'bg-gradient-to-br from-primary to-primary-dark',
+  personal: 'bg-gradient-to-br from-gray-900 via-gray-800 to-primary-dark',
+  data: 'bg-gradient-to-br from-primary to-secondary',
+  solution: 'bg-gradient-to-br from-secondary to-primary'
+};
+---
+
+<section class={`relative overflow-hidden ${heroClasses[variant]} print:bg-white print:text-black`}>
+  <!-- Background Elements -->
+  {backgroundVideo && (
+    <div class="absolute inset-0 z-0">
+      <video
+        autoplay
+        muted
+        loop
+        playsinline
+        class="w-full h-full object-cover opacity-20"
+        aria-hidden="true"
+      >
+        <source src={backgroundVideo} type="video/mp4" />
+        <source src={backgroundVideo.replace('.mp4', '.webm')} type="video/webm" />
+      </video>
+    </div>
+  )}
+
+  {backgroundImage && !backgroundVideo && (
+    <div class="absolute inset-0 z-0">
+      <img
+        src={backgroundImage}
+        alt=""
+        class="w-full h-full object-cover opacity-20"
+        aria-hidden="true"
+        loading="eager"
+      />
+    </div>
+  )}
+
+  <!-- Background Pattern -->
+  <div class="absolute inset-0 z-10">
+    <svg
+      class="absolute inset-0 h-full w-full"
+      preserveAspectRatio="xMidYMid slice"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 1463 360"
+      aria-hidden="true"
+    >
+      <path
+        class="fill-white opacity-5"
+        d="M-82.673 72l1761.849 472.086-134.327 501.315-1761.85-472.086z"
+      />
+      <path
+        class="fill-white opacity-3"
+        d="M-217.088 544.086L1544.761 72l134.327 501.316-1761.849 472.086z"
+      />
+    </svg>
+  </div>
+
+  <!-- Content -->
+  <div class="relative z-20 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+      <div class="py-16 sm:py-20 lg:py-28">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <!-- Text Content -->
+          <div class="text-center lg:text-left">
+            {subtitle && (
+              <div class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-white/10 text-white/90 mb-6 backdrop-blur-sm">
+                <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2L2 7L12 12L22 7L12 2Z" />
+                  <path d="M2 17L12 22L22 17" />
+                  <path d="M2 12L12 17L22 12" />
+                </svg>
+                {subtitle}
+              </div>
+            )}
+
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6 fade-in print:text-black">
+              <span class="block">{title}</span>
+            </h1>
+
+            <p class="text-xl sm:text-2xl text-white/90 mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed fade-in print:text-gray-700">
+              {description}
+            </p>
+
+            <!-- CTA Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12 fade-in no-print">
+              <a
+                href={ctaHref}
+                class="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-primary bg-white rounded-xl hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-primary transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+              >
+                {ctaText}
+                <svg class="ml-2 w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+              </a>
+
+              {secondaryCtaText && secondaryCtaHref && (
+                <a
+                  href={secondaryCtaHref}
+                  class="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-white/10 rounded-xl hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-primary transition-all duration-200 backdrop-blur-sm border border-white/20"
+                >
+                  {secondaryCtaText}
+                </a>
+              )}
+            </div>
+
+            <!-- Stats (if provided) -->
+            {stats.length > 0 && (
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 fade-in">
+                {stats.map((stat, index) => (
+                  <div key={index} class="text-center lg:text-left">
+                    <div class="text-3xl sm:text-4xl font-bold text-white mb-2 print:text-black">
+                      {stat.value}
+                    </div>
+                    <div class="text-sm font-semibold text-white/80 uppercase tracking-wider mb-1 print:text-gray-600">
+                      {stat.label}
+                    </div>
+                    {stat.description && (
+                      <div class="text-sm text-white/70 print:text-gray-500">
+                        {stat.description}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <!-- Visual Content -->
+          <div class="relative">
+            <slot name="visual">
+              <!-- Default visual content -->
+              <div class="relative">
+                <!-- Decorative elements -->
+                <div class="absolute -inset-4 bg-gradient-to-r from-white/10 to-white/5 rounded-3xl transform rotate-2 backdrop-blur-sm no-print"></div>
+                <div class="absolute -inset-4 bg-gradient-to-r from-white/5 to-white/10 rounded-3xl transform -rotate-1 backdrop-blur-sm no-print"></div>
+
+                <!-- Main visual container -->
+                <div class="relative bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 no-print">
+                  <!-- Bus route visualization placeholder -->
+                  <div class="w-full h-64 sm:h-80 bg-white/20 rounded-xl flex items-center justify-center">
+                    <div class="text-center text-white/80">
+                      <svg class="w-16 h-16 mx-auto mb-4" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z" />
+                        <path d="M2 17L12 22L22 17" />
+                        <path d="M2 12L12 17L22 12" />
+                      </svg>
+                      <p class="text-lg font-medium">Interactive Visualization</p>
+                      <p class="text-sm opacity-80">Bus route and study time correlation</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </slot>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scroll indicator -->
+  <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 no-print">
+    <button
+      onclick="document.getElementById('main-content').scrollIntoView({ behavior: 'smooth' })"
+      class="flex flex-col items-center text-white/80 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-white rounded-lg p-2"
+      aria-label="Scroll to main content"
+    >
+      <span class="text-sm font-medium mb-2">Discover More</span>
+      <svg class="w-6 h-6 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+      </svg>
+    </button>
+  </div>
+
+  <!-- Wave separator -->
+  <div class="absolute bottom-0 left-0 w-full overflow-hidden no-print">
+    <svg
+      class="relative block w-full h-16"
+      data-name="Layer 1"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 1200 120"
+      preserveAspectRatio="none"
+    >
+      <path
+        d="M985.66,92.83C906.67,72,823.78,31,743.84,14.19c-82.26-17.34-168.06-16.33-250.45.39-57.84,11.73-114,31.07-172,41.86A600.21,600.21,0,0,1,0,27.35V120H1200V95.8C1132.19,118.92,1055.71,111.31,985.66,92.83Z"
+        class="fill-white"
+      ></path>
+    </svg>
+  </div>
+</section>
+
+<style>
+  /* Animation keyframes */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .fade-in {
+    opacity: 0;
+    animation: fadeIn 0.8s ease-out forwards;
+  }
+
+  .fade-in:nth-child(1) { animation-delay: 0.2s; }
+  .fade-in:nth-child(2) { animation-delay: 0.4s; }
+  .fade-in:nth-child(3) { animation-delay: 0.6s; }
+  .fade-in:nth-child(4) { animation-delay: 0.8s; }
+
+  /* Video background optimizations */
+  video {
+    transform: scale(1.1); /* Slight zoom to avoid edge artifacts */
+  }
+
+  /* Hover effects for CTA buttons */
+  a:hover {
+    transform: translateY(-2px);
+  }
+
+  /* Responsive video handling */
+  @media (max-width: 768px) {
+    video {
+      display: none; /* Hide video on mobile for performance */
+    }
+  }
+
+  /* High contrast mode */
+  @media (prefers-contrast: high) {
+    .bg-white\/10,
+    .bg-white\/5,
+    .bg-white\/20 {
+      background-color: rgba(255, 255, 255, 0.3) !important;
+      border: 2px solid white !important;
+    }
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .fade-in {
+      opacity: 1;
+      transform: none;
+      animation: none;
+    }
+
+    .animate-bounce {
+      animation: none;
+    }
+
+    a:hover,
+    button:hover {
+      transform: none;
+    }
+  }
+
+  /* Print styles */
+  @media print {
+    section {
+      background: white !important;
+      color: black !important;
+      padding: 2rem 0 !important;
+    }
+
+    .no-print {
+      display: none !important;
+    }
+
+    h1 {
+      color: black !important;
+      font-size: 2.5rem !important;
+    }
+
+    p {
+      color: #333 !important;
+    }
+
+    .grid {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+  /* Accessibility improvements */
+  @media (prefers-reduced-motion: no-preference) {
+    .animate-bounce {
+      animation: bounce 1s infinite;
+    }
+  }
+
+  /* Focus improvements */
+  button:focus,
+  a:focus {
+    outline: 2px solid white;
+    outline-offset: 2px;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Intersection Observer for animations
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in-view');
+        }
+      });
+    }, observerOptions);
+
+    // Observe fade-in elements
+    const fadeElements = document.querySelectorAll('.fade-in');
+    fadeElements.forEach(el => observer.observe(el));
+
+    // Video background optimization
+    const video = document.querySelector('video');
+    if (video) {
+      // Pause video when not visible (performance optimization)
+      const videoObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            video.play();
+          } else {
+            video.pause();
+          }
+        });
+      });
+
+      videoObserver.observe(video);
+
+      // Handle video loading errors gracefully
+      video.addEventListener('error', () => {
+        console.warn('Hero video failed to load');
+        video.style.display = 'none';
+      });
+    }
+
+    // Smooth scroll for internal links
+    const scrollLinks = document.querySelectorAll('a[href^="#"]');
+    scrollLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = document.querySelector(link.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }
+      });
+    });
+
+    // Enhanced analytics for hero interactions
+    const ctaButtons = document.querySelectorAll('a[href]');
+    ctaButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const action = button.textContent?.trim();
+        const destination = button.getAttribute('href');
+
+        // Track with analytics (would be implemented in production)
+        if (typeof gtag !== 'undefined') {
+          gtag('event', 'hero_cta_click', {
+            cta_text: action,
+            cta_destination: destination,
+            hero_variant: document.querySelector('section')?.className.includes('personal') ? 'personal' : 'default'
+          });
+        }
+      });
+    });
+
+    // Keyboard navigation improvements
+    const heroSection = document.querySelector('section');
+    if (heroSection) {
+      heroSection.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.target === heroSection) {
+          const primaryCta = heroSection.querySelector('a');
+          if (primaryCta) {
+            primaryCta.click();
+          }
+        }
+      });
+    }
+
+    // Performance monitoring
+    if ('performance' in window) {
+      window.addEventListener('load', () => {
+        const heroLoadTime = performance.now();
+        console.log(`Hero section loaded in ${heroLoadTime.toFixed(2)}ms`);
+      });
+    }
+  });
+</script>

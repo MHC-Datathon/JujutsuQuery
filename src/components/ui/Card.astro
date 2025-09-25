@@ -1,0 +1,191 @@
+---
+/**
+ * Card Component for ClearLane Initiative
+ * Flexible container for content with consistent styling
+ */
+
+export interface Props {
+  variant?: 'default' | 'elevated' | 'outlined' | 'filled';
+  padding?: 'sm' | 'md' | 'lg' | 'xl' | 'none';
+  hover?: boolean;
+  interactive?: boolean;
+  href?: string;
+  className?: string;
+}
+
+const {
+  variant = 'default',
+  padding = 'md',
+  hover = false,
+  interactive = false,
+  href,
+  className = '',
+  ...rest
+} = Astro.props;
+
+const Tag = href ? 'a' : interactive ? 'div' : 'div';
+
+const baseClasses = [
+  'block w-full',
+  'transition-all duration-200',
+  'print:border print:border-gray-300 print:shadow-none'
+];
+
+const variantClasses = {
+  default: [
+    'bg-white',
+    'border border-gray-200',
+    'rounded-lg',
+  ],
+  elevated: [
+    'bg-white',
+    'rounded-lg',
+    'shadow-md',
+    hover ? 'hover:shadow-lg' : ''
+  ],
+  outlined: [
+    'bg-transparent',
+    'border-2 border-gray-200',
+    'rounded-lg',
+    hover ? 'hover:border-gray-300' : ''
+  ],
+  filled: [
+    'bg-gray-50',
+    'border border-gray-100',
+    'rounded-lg',
+    hover ? 'hover:bg-gray-100' : ''
+  ]
+};
+
+const paddingClasses = {
+  none: '',
+  sm: 'p-4',
+  md: 'p-6',
+  lg: 'p-8',
+  xl: 'p-12'
+};
+
+const interactiveClasses = interactive || href ? [
+  'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+  'cursor-pointer'
+] : [];
+
+const allClasses = [
+  ...baseClasses,
+  ...variantClasses[variant],
+  paddingClasses[padding],
+  ...interactiveClasses,
+  className
+].filter(Boolean).join(' ');
+
+const componentProps = {
+  class: allClasses,
+  ...(href && {
+    href,
+    ...(href.startsWith('http') && {
+      target: '_blank',
+      rel: 'noopener noreferrer'
+    })
+  }),
+  ...(interactive && {
+    'data-interactive': true,
+    role: 'button',
+    tabindex: 0
+  }),
+  ...rest
+};
+---
+
+<Tag {...componentProps}>
+  <slot />
+</Tag>
+
+<style>
+  /* Card specific enhancements */
+  a, [data-interactive] {
+    text-decoration: none;
+  }
+
+  /* Hover effects */
+  a:hover,
+  [data-interactive]:hover {
+    text-decoration: none;
+    transform: translateY(-1px);
+  }
+
+  /* Focus states */
+  a:focus,
+  [data-interactive]:focus {
+    text-decoration: none;
+  }
+
+  /* High contrast mode */
+  @media (prefers-contrast: high) {
+    .card {
+      border-width: 2px !important;
+    }
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    a, [data-interactive] {
+      transition: none !important;
+      transform: none !important;
+    }
+
+    a:hover,
+    [data-interactive]:hover {
+      transform: none !important;
+    }
+  }
+
+  /* Print styles */
+  @media print {
+    a, [data-interactive] {
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const interactiveCards = document.querySelectorAll('[data-interactive]');
+
+    interactiveCards.forEach(card => {
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+
+          // Find the first clickable element inside the card
+          const clickable = card.querySelector('a, button, [onclick]');
+          if (clickable) {
+            (clickable as HTMLElement).click();
+          } else {
+            // Dispatch a custom event if no clickable element found
+            card.dispatchEvent(new CustomEvent('cardActivated', {
+              bubbles: true,
+              detail: { card }
+            }));
+          }
+        }
+      });
+
+      // Add accessible click handler
+      card.addEventListener('click', (e) => {
+        // Don't interfere with clicks on interactive elements inside the card
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'A' || target.tagName === 'BUTTON' || target.hasAttribute('onclick')) {
+          return;
+        }
+
+        // Find and click the primary action
+        const primaryAction = card.querySelector('a, button');
+        if (primaryAction && primaryAction !== target) {
+          e.preventDefault();
+          (primaryAction as HTMLElement).click();
+        }
+      });
+    });
+  });
+</script>
