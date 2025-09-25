@@ -78,7 +78,7 @@ const allClasses = [
   className
 ].filter(Boolean).join(' ');
 
-const componentProps = {
+const componentProps: any = {
   class: allClasses,
   ...(href && {
     href,
@@ -154,7 +154,7 @@ const componentProps = {
 
     interactiveCards.forEach(card => {
       card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') {
           e.preventDefault();
 
           // Find the first clickable element inside the card

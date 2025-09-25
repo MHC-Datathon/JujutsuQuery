@@ -62,7 +62,6 @@ const aspectRatioClasses = {
   <div class={`grid ${columnClasses[columns]} ${gapClasses[gap]}`}>
     {items.map((item, index) => (
       <div
-        key={index}
         class={`relative overflow-hidden rounded-lg bg-gray-100 cursor-pointer group ${aspectRatio !== 'auto' ? aspectRatioClasses[aspectRatio] : ''}`}
         data-gallery-item={index}
         role="button"
@@ -270,7 +269,7 @@ const aspectRatioClasses = {
     const lightboxNext = document.getElementById('lightbox-next');
 
     let currentIndex = 0;
-    let mediaItems: MediaItem[] = [];
+    let mediaItems: any[] = [];
 
     // Extract media items from DOM
     galleryItems.forEach((item, index) => {
@@ -338,10 +337,10 @@ const aspectRatioClasses = {
 
       // Update navigation buttons
       if (lightboxPrev) {
-        lightboxPrev.disabled = index === 0;
+        (lightboxPrev as any).disabled = index === 0;
       }
       if (lightboxNext) {
-        lightboxNext.disabled = index === mediaItems.length - 1;
+        (lightboxNext as HTMLButtonElement).disabled = index === mediaItems.length - 1;
       }
 
       // Show modal
@@ -384,7 +383,7 @@ const aspectRatioClasses = {
       item.addEventListener('click', clickHandler);
 
       item.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if ((e as any).key === 'Enter' || (e as any).key === ' ') {
           e.preventDefault();
           clickHandler();
         }

@@ -61,7 +61,6 @@ const ctaButton = {
       <nav class="hidden lg:flex space-x-8" aria-label="Main navigation">
         {navigation.map((item) => (
           <a
-            key={item.name}
             href={item.href}
             class={`px-3 py-2 text-sm font-medium transition-colors rounded-lg ${
               item.current
@@ -137,7 +136,6 @@ const ctaButton = {
       <div class="px-2 pt-2 pb-3 space-y-1">
         {navigation.map((item) => (
           <a
-            key={item.name}
             href={item.href}
             class={`block px-3 py-2 text-base font-medium transition-colors rounded-lg ${
               item.current
@@ -339,8 +337,8 @@ const ctaButton = {
             e.preventDefault();
 
             // Close mobile menu if open
-            if (isMenuOpen && mobileMenu) {
-              toggleMenu();
+            if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
+              mobileMenu.classList.add('hidden');
             }
 
             // Scroll to target
@@ -384,12 +382,12 @@ const ctaButton = {
     // Only enable header hiding on larger screens
     if (window.innerWidth >= 1024) {
       window.addEventListener('scroll', () => {
-        if (!ticking) {
+        if (!(window as any).ticking) {
           requestAnimationFrame(() => {
             handleHeaderScroll();
-            ticking = false;
+            (window as any).ticking = false;
           });
-          ticking = true;
+          (window as any).ticking = true;
         }
       }, { passive: true });
     }

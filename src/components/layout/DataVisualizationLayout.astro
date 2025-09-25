@@ -502,7 +502,7 @@ const layoutClass = `viz-layout-${layout}`;
     const sidebars = document.querySelectorAll('.sidebar-content');
     sidebars.forEach(sidebar => {
       sidebar.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
+        if ((e as KeyboardEvent).key === 'Escape') {
           const toggle = sidebar.parentNode?.querySelector('.sidebar-toggle') as HTMLButtonElement;
           if (toggle && sidebar.classList.contains('mobile-hidden') === false) {
             toggle.click();

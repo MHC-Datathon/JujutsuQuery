@@ -3,7 +3,6 @@
  * Personal Route Analyzer - Interactive tool for users to explore their commute
  * Core engagement tool for "Rolling Study Hall" narrative
  */
-import BaseChart from '../charts/BaseChart.astro';
 
 export interface Props {
   className?: string;
@@ -29,12 +28,11 @@ const cunyOptions = [
 ];
 ---
 
-<BaseChart
-  id="route-analyzer"
-  title="Analyze Your Commute Impact"
-  description="Enter your bus route and commute times to see how violations affect your journey and study time."
-  className={`route-analyzer ${className}`}
->
+<div id="route-analyzer" class={`route-analyzer ${className}`}>
+  <div class="mb-6">
+    <h3 class="text-xl font-bold text-gray-900 mb-2">Analyze Your Commute Impact</h3>
+    <p class="text-gray-600">Enter your bus route and commute times to see how violations affect your journey and study time.</p>
+  </div>
   <div class="analyzer-container">
     <!-- Input Form -->
     <form id="route-form" class="route-form" novalidate>
@@ -60,7 +58,7 @@ const cunyOptions = [
             />
             <datalist id="route-suggestions">
               {sampleRoutes.map(route => (
-                <option value={route} key={route}>{route}</option>
+                <option value={route}>{route}</option>
               ))}
             </datalist>
           </div>
@@ -84,7 +82,7 @@ const cunyOptions = [
             <option value="">Select your destination</option>
             <optgroup label="CUNY Campuses">
               {cunyOptions.map(campus => (
-                <option value={campus} key={campus}>{campus}</option>
+                <option value={campus}>{campus}</option>
               ))}
             </optgroup>
             <optgroup label="Other Destinations">
@@ -238,7 +236,7 @@ const cunyOptions = [
       </button>
     </div>
   </div>
-</BaseChart>
+</div>
 
 <style>
   .route-analyzer {

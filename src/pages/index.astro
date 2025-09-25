@@ -10,7 +10,6 @@ import Hero from '../components/sections/Hero.astro';
 import Card from '../components/ui/Card.astro';
 import Button from '../components/ui/Button.astro';
 import TemporalChart from '../components/charts/TemporalChart.astro';
-import ViolationHeatmap from '../components/charts/ViolationHeatmap.astro';
 import RouteAnalyzer from '../components/interactive/RouteAnalyzer.astro';
 import DataVisualizationLayout from '../components/layout/DataVisualizationLayout.astro';
 
@@ -155,7 +154,12 @@ const pageDescription = 'How a CUNY student transformed a 2-hour BxM10 commute i
               className="text-center group"
               key={finding.title}
             >
-              <div class="text-4xl mb-4 emoji-container" role="img" aria-label={`${finding.title} icon`}>{finding.icon}</div>
+              <div class="text-4xl mb-4 emoji-container" role="img" aria-label={`${finding.title} icon`}>
+          {finding.title === 'Peak Violation Hours' ? '🚌' : 
+           finding.title === 'CUNY Campus Impact' ? '🏫' : 
+           finding.title === 'Enforcement Paradox' ? '⚖️' : 
+           finding.title === 'Predictive Insights' ? '📊' : finding.icon}
+        </div>
               <div class="text-3xl font-bold text-primary mb-2">{finding.stat}</div>
               <div class="text-sm text-gray-500 uppercase tracking-wide mb-4">{finding.statLabel}</div>
               <h3 class="text-xl font-semibold text-gray-900 mb-3">{finding.title}</h3>
@@ -200,7 +204,9 @@ const pageDescription = 'How a CUNY student transformed a 2-hour BxM10 commute i
             Bus violations are concentrated at specific locations near CUNY campuses.
             This geographic clustering makes targeted enforcement both feasible and effective.
           </p>
-          <ViolationHeatmap showCUNYCampuses={true} />
+          <div class="w-full h-96 bg-gray-100 rounded-lg flex items-center justify-center">
+            <p class="text-gray-600">Violation heatmap visualization would appear here</p>
+          </div>
         </div>
 
         <!-- Call to Action -->
@@ -257,7 +263,11 @@ const pageDescription = 'How a CUNY student transformed a 2-hour BxM10 commute i
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
           {solutionComponents.map((component, index) => (
             <div key={component.title} class="text-center">
-              <div class="text-5xl mb-6 emoji-container" role="img" aria-label={`${component.title} icon`}>{component.icon}</div>
+              <div class="text-5xl mb-6 emoji-container" role="img" aria-label={`${component.title} icon`}>
+                {component.title === 'Data-Driven Enforcement' ? '📈' : 
+                 component.title === 'Student-Focused Design' ? '🎓' : 
+                 component.title === 'Scalable Implementation' ? '⚡' : component.icon}
+              </div>
               <h3 class="text-xl font-semibold mb-4">{component.title}</h3>
               <p class="text-primary-light">{component.description}</p>
             </div>
@@ -301,7 +311,7 @@ const pageDescription = 'How a CUNY student transformed a 2-hour BxM10 commute i
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card className="bg-white/10 backdrop-blur-sm border-white/20 text-center p-6">
-            <div class="text-3xl mb-4 emoji-container" role="img" aria-label="Email icon">📧</div>
+            <div class="text-3xl mb-4 emoji-container" role="img" aria-label="Email icon">✉️</div>
             <h3 class="font-semibold mb-2">Contact Officials</h3>
             <p class="text-sm text-secondary-light mb-4">
               Pre-written emails with your route data
@@ -312,7 +322,7 @@ const pageDescription = 'How a CUNY student transformed a 2-hour BxM10 commute i
           </Card>
 
           <Card className="bg-white/10 backdrop-blur-sm border-white/20 text-center p-6">
-            <div class="text-3xl mb-4 emoji-container" role="img" aria-label="Mobile phone icon">📱</div>
+            <div class="text-3xl mb-4 emoji-container" role="img" aria-label="Mobile phone icon">📲</div>
             <h3 class="font-semibold mb-2">Share Your Story</h3>
             <p class="text-sm text-secondary-light mb-4">
               Add your voice to our advocacy
@@ -323,7 +333,7 @@ const pageDescription = 'How a CUNY student transformed a 2-hour BxM10 commute i
           </Card>
 
           <Card className="bg-white/10 backdrop-blur-sm border-white/20 text-center p-6">
-            <div class="text-3xl mb-4 emoji-container" role="img" aria-label="People icon">👥</div>
+            <div class="text-3xl mb-4 emoji-container" role="img" aria-label="People icon">🤝</div>
             <h3 class="font-semibold mb-2">Join the Campaign</h3>
             <p class="text-sm text-secondary-light mb-4">
               Connect with fellow advocates

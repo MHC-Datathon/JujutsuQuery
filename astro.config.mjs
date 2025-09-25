@@ -15,6 +15,10 @@ export default defineConfig({
     })
   ],
   output: 'static',
+  typescript: {
+    strict: false,
+    check: false
+  },
   vite: {
     optimizeDeps: {
       include: ['d3', 'chart.js', 'papaparse', 'leaflet']

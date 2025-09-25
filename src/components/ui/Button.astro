@@ -97,7 +97,7 @@ const allClasses = [
 ].filter(Boolean).join(' ');
 
 // Component props for the rendered element
-const componentProps = {
+const componentProps: any = {
   class: allClasses,
   disabled: disabled || loading,
   'data-analytics': analytics,
@@ -218,8 +218,8 @@ if (href) {
 
         // Analytics tracking
         const analyticsData = button.getAttribute('data-analytics');
-        if (analyticsData && typeof gtag !== 'undefined') {
-          gtag('event', 'button_click', {
+        if (analyticsData && typeof (window as any).gtag !== 'undefined') {
+          (window as any).gtag('event', 'button_click', {
             button_text: button.textContent?.trim(),
             button_variant: analyticsData
           });
@@ -227,13 +227,13 @@ if (href) {
 
         // Ripple effect (only if animations are enabled)
         if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-          addRippleEffect(button, e);
+          addRippleEffect(button, e as MouseEvent);
         }
       });
 
       // Enhanced keyboard support
       button.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') {
           e.preventDefault();
 
           // Visual feedback
@@ -243,7 +243,7 @@ if (href) {
           }, 150);
 
           // Trigger click
-          button.click();
+          (button as HTMLElement).click();
         }
       });
     });

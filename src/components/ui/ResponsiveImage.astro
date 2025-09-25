@@ -205,7 +205,7 @@ const objectFitClasses = {
           const tempImg = new Image();
           tempImg.onload = () => {
             img.classList.add('loaded');
-            img.style.opacity = '1';
+            (img as HTMLElement).style.opacity = '1';
           };
 
           tempImg.onerror = () => {
@@ -232,7 +232,7 @@ const objectFitClasses = {
     const eagerImages = document.querySelectorAll('img[loading="eager"]');
     eagerImages.forEach(img => {
       img.addEventListener('load', () => {
-        img.style.opacity = '1';
+        (img as HTMLElement).style.opacity = '1';
         img.classList.add('loaded');
       });
 
@@ -250,7 +250,7 @@ const objectFitClasses = {
         const observer = new PerformanceObserver((list) => {
           list.getEntries().forEach((entry) => {
             if (entry.name.includes(img.src)) {
-              const loadTime = entry.responseEnd - entry.responseStart;
+              const loadTime = (entry as any).responseEnd - (entry as any).responseStart;
               console.log(`Image ${img.alt || 'untitled'} loaded in ${loadTime.toFixed(2)}ms`);
             }
           });
