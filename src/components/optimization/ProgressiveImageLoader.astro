@@ -1,0 +1,543 @@
+---
+/**
+ * Progressive Image Loader - Optimized loading for data visualizations
+ * Implements progressive loading, lazy loading, and WebP conversion for all plot images
+ */
+
+export interface ImageLoaderProps {
+  src: string;
+  alt: string;
+  title?: string;
+  className?: string;
+  priority?: boolean;
+  placeholder?: 'blur' | 'empty' | 'data';
+  sizes?: string;
+  onLoad?: () => void;
+  fallbackSrc?: string;
+  dataVisualization?: boolean;
+  ariaDescribedBy?: string;
+}
+
+const {
+  src,
+  alt,
+  title,
+  className = '',
+  priority = false,
+  placeholder = 'blur',
+  sizes = '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw',
+  onLoad,
+  fallbackSrc,
+  dataVisualization = false,
+  ariaDescribedBy
+} = Astro.props as ImageLoaderProps;
+
+// Generate optimized image variants
+const generateImageVariants = (originalSrc: string) => {
+  const basePath = originalSrc.replace(/\.[^/.]+$/, '');
+  const extension = originalSrc.split('.').pop();
+
+  return {
+    webp: `${basePath}.webp`,
+    original: originalSrc,
+    placeholder: `${basePath}_placeholder.webp`,
+    sizes: [
+      { width: 640, src: `${basePath}_640w.${extension}` },
+      { width: 768, src: `${basePath}_768w.${extension}` },
+      { width: 1024, src: `${basePath}_1024w.${extension}` },
+      { width: 1280, src: `${basePath}_1280w.${extension}` },
+      { width: 1920, src: `${basePath}_1920w.${extension}` }
+    ]
+  };
+};
+
+const imageVariants = generateImageVariants(src);
+
+// Generate placeholder data URL for blur effect
+const generatePlaceholderDataUrl = () => {
+  return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhZGllbnQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZjNmNGY2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlNWU3ZWI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0idXJsKCNncmFkaWVudCkiIC8+CiAgPHRleHQgeD0iNTAiIHk9IjUwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Mb2FkaW5nLi4uPC90ZXh0Pgo8L3N2Zz4K';
+};
+
+const placeholderDataUrl = generatePlaceholderDataUrl();
+---
+
+<div class={`progressive-image-container ${className}`}
+     data-testid="progressive-image-loader"
+     role={dataVisualization ? "img" : undefined}
+     aria-label={dataVisualization ? alt : undefined}>
+
+  <!-- Intersection Observer Trigger -->
+  <div class="image-intersection-trigger" data-src={src} data-priority={priority}></div>
+
+  <!-- Placeholder/Loading State -->
+  <div class="image-placeholder"
+       style={placeholder === 'blur' ? `background-image: url(${placeholderDataUrl})` : ''}>
+    {placeholder === 'blur' && (
+      <div class="placeholder-overlay">
+        <div class="loading-spinner" aria-hidden="true"></div>
+        <span class="sr-only">Loading visualization...</span>
+      </div>
+    )}
+  </div>
+
+  <!-- Main Image with Progressive Enhancement -->
+  <picture class="progressive-image hidden">
+    <!-- WebP variants for modern browsers -->
+    <source type="image/webp"
+            srcset={imageVariants.sizes.map(size => `${size.src.replace(/\.[^/.]+$/, '.webp')} ${size.width}w`).join(', ')}
+            sizes={sizes} />
+
+    <!-- Fallback formats -->
+    <source type="image/png"
+            srcset={imageVariants.sizes.map(size => `${size.src} ${size.width}w`).join(', ')}
+            sizes={sizes} />
+
+    <img src={fallbackSrc || src}
+         alt={alt}
+         title={title}
+         class="responsive-image"
+         loading={priority ? "eager" : "lazy"}
+         decoding="async"
+         aria-describedby={ariaDescribedBy}
+         data-sizes="auto"
+         onload="this.parentElement.parentElement.classList.add('loaded')"
+         onerror="this.parentElement.parentElement.classList.add('error')" />
+  </picture>
+
+  <!-- Error State -->
+  <div class="image-error hidden">
+    <div class="error-content" role="alert">
+      <svg class="error-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <p class="error-message">Unable to load visualization</p>
+      {fallbackSrc && (
+        <button class="retry-button" onclick="retryImageLoad(this)">
+          Try Again
+        </button>
+      )}
+    </div>
+  </div>
+
+  <!-- Data Visualization Context -->
+  {dataVisualization && (
+    <div class="visualization-context" id={ariaDescribedBy}>
+      <div class="context-content sr-only">
+        <slot name="visualization-description">
+          Data visualization showing {alt}.
+          Interact with the chart using keyboard navigation or screen reader shortcuts.
+        </slot>
+      </div>
+    </div>
+  )}
+
+  <!-- Performance Metrics -->
+  <div class="image-metrics" data-testid="image-metrics" style="display: none;">
+    <span data-metric="loading-time">0</span>
+    <span data-metric="size-saved">0</span>
+    <span data-metric="format-used">unknown</span>
+  </div>
+</div>
+
+<script>
+class ProgressiveImageLoader {
+  constructor(container) {
+    this.container = container;
+    this.trigger = container.querySelector('.image-intersection-trigger');
+    this.placeholder = container.querySelector('.image-placeholder');
+    this.pictureElement = container.querySelector('.progressive-image');
+    this.errorElement = container.querySelector('.image-error');
+    this.img = container.querySelector('img');
+    this.metrics = container.querySelector('.image-metrics');
+
+    this.loadStartTime = 0;
+    this.observer = null;
+
+    this.init();
+  }
+
+  init() {
+    // Set up intersection observer for lazy loading
+    this.setupIntersectionObserver();
+
+    // Set up image load handlers
+    this.setupImageHandlers();
+
+    // Initialize performance monitoring
+    this.initPerformanceMonitoring();
+
+    // Handle priority loading
+    if (this.trigger.dataset.priority === 'true') {
+      this.loadImage();
+    }
+  }
+
+  setupIntersectionObserver() {
+    const options = {
+      root: null,
+      rootMargin: '50px',
+      threshold: 0.1
+    };
+
+    this.observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          this.loadImage();
+          this.observer.unobserve(entry.target);
+        }
+      });
+    }, options);
+
+    this.observer.observe(this.trigger);
+  }
+
+  setupImageHandlers() {
+    if (this.img) {
+      this.img.addEventListener('load', () => this.handleImageLoad());
+      this.img.addEventListener('error', () => this.handleImageError());
+    }
+  }
+
+  initPerformanceMonitoring() {
+    if (typeof window.performance !== 'undefined') {
+      this.loadStartTime = performance.now();
+    }
+  }
+
+  loadImage() {
+    if (!this.img || this.container.classList.contains('loading')) return;
+
+    this.container.classList.add('loading');
+    this.loadStartTime = performance.now();
+
+    // Show picture element
+    this.pictureElement.classList.remove('hidden');
+
+    // Modern browsers: use srcset if available
+    if (this.img.srcset) {
+      this.img.src = this.img.srcset.split(',')[0].trim().split(' ')[0];
+    }
+
+    // Preload critical images
+    if (this.trigger.dataset.priority === 'true') {
+      this.img.loading = 'eager';
+    }
+  }
+
+  handleImageLoad() {
+    const loadTime = performance.now() - this.loadStartTime;
+
+    // Update UI
+    this.container.classList.add('loaded');
+    this.container.classList.remove('loading');
+    this.placeholder.classList.add('hidden');
+
+    // Update metrics
+    this.updateMetrics(loadTime);
+
+    // Track performance
+    this.trackImagePerformance(loadTime);
+
+    // Announce to screen readers
+    this.announceImageLoad();
+  }
+
+  handleImageError() {
+    this.container.classList.add('error');
+    this.container.classList.remove('loading');
+    this.placeholder.classList.add('hidden');
+    this.errorElement.classList.remove('hidden');
+
+    // Track error
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'image_load_error', {
+        image_src: this.trigger.dataset.src,
+        error_type: 'load_failure'
+      });
+    }
+  }
+
+  updateMetrics(loadTime) {
+    if (this.metrics) {
+      this.metrics.querySelector('[data-metric="loading-time"]').textContent = Math.round(loadTime);
+
+      // Detect format used
+      const img = this.img;
+      if (img.currentSrc && img.currentSrc.includes('.webp')) {
+        this.metrics.querySelector('[data-metric="format-used"]').textContent = 'webp';
+      } else if (img.currentSrc && img.currentSrc.includes('.png')) {
+        this.metrics.querySelector('[data-metric="format-used"]').textContent = 'png';
+      }
+    }
+  }
+
+  trackImagePerformance(loadTime) {
+    // Core Web Vitals tracking
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'image_performance', {
+        image_load_time: Math.round(loadTime),
+        image_src: this.trigger.dataset.src,
+        format_used: this.metrics?.querySelector('[data-metric="format-used"]')?.textContent || 'unknown'
+      });
+    }
+
+    // Performance API integration
+    if (typeof performance !== 'undefined' && performance.mark) {
+      performance.mark('image-loaded');
+      performance.measure('image-load-duration', 'navigationStart', 'image-loaded');
+    }
+  }
+
+  announceImageLoad() {
+    // Create temporary announcement for screen readers
+    const announcement = document.createElement('div');
+    announcement.textContent = `Visualization loaded: ${this.img.alt}`;
+    announcement.setAttribute('aria-live', 'polite');
+    announcement.classList.add('sr-only');
+
+    document.body.appendChild(announcement);
+    setTimeout(() => {
+      document.body.removeChild(announcement);
+    }, 1000);
+  }
+
+  retry() {
+    this.container.classList.remove('error');
+    this.errorElement.classList.add('hidden');
+    this.loadImage();
+  }
+}
+
+// Auto-initialize progressive image loaders
+document.addEventListener('DOMContentLoaded', () => {
+  const containers = document.querySelectorAll('.progressive-image-container');
+  containers.forEach(container => {
+    new ProgressiveImageLoader(container);
+  });
+});
+
+// Retry function for error states
+window.retryImageLoad = function(button) {
+  const container = button.closest('.progressive-image-container');
+  if (container && container.imageLoader) {
+    container.imageLoader.retry();
+  }
+};
+
+// Critical resource hints for above-the-fold images
+document.addEventListener('DOMContentLoaded', () => {
+  const priorityImages = document.querySelectorAll('[data-priority="true"]');
+  priorityImages.forEach(trigger => {
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = trigger.dataset.src;
+    document.head.appendChild(link);
+  });
+});
+</script>
+
+<style>
+.progressive-image-container {
+  position: relative;
+  overflow: hidden;
+  background-color: #f3f4f6;
+  border-radius: 0.5rem;
+}
+
+.image-intersection-trigger {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.image-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease;
+}
+
+.placeholder-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: #6b7280;
+}
+
+.loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid #e5e7eb;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.progressive-image {
+  width: 100%;
+  height: 100%;
+  transition: opacity 0.5s ease;
+}
+
+.responsive-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  transition: opacity 0.3s ease;
+}
+
+.progressive-image-container.loaded .image-placeholder {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.progressive-image-container.loaded .progressive-image {
+  opacity: 1;
+}
+
+.progressive-image-container.error .image-placeholder {
+  opacity: 0;
+}
+
+.image-error {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fef2f2;
+  border: 2px dashed #fca5a5;
+}
+
+.error-content {
+  text-align: center;
+  color: #dc2626;
+  padding: 1rem;
+}
+
+.error-icon {
+  margin: 0 auto 0.5rem;
+  color: #ef4444;
+}
+
+.error-message {
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.retry-button {
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.retry-button:hover {
+  background-color: #b91c1c;
+}
+
+.retry-button:focus {
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
+}
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .progressive-image-container {
+    border: 2px solid;
+  }
+
+  .error-content {
+    border: 2px solid currentColor;
+    background-color: Canvas;
+    color: CanvasText;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner {
+    animation: none;
+  }
+
+  .progressive-image,
+  .responsive-image,
+  .image-placeholder {
+    transition: none;
+  }
+}
+
+/* Print styles */
+@media print {
+  .image-placeholder,
+  .image-error,
+  .loading-spinner {
+    display: none;
+  }
+
+  .progressive-image {
+    opacity: 1;
+  }
+
+  .responsive-image {
+    max-height: 4in;
+    object-fit: contain;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .progressive-image-container {
+    background-color: #374151;
+  }
+
+  .placeholder-overlay {
+    color: #d1d5db;
+  }
+
+  .loading-spinner {
+    border-color: #4b5563;
+    border-top-color: #60a5fa;
+  }
+}
+</style>

@@ -1,0 +1,404 @@
+---
+/**
+ * Header Component for ClearLane Initiative
+ * Responsive navigation with accessibility and mobile support
+ */
+
+export interface Props {
+  currentPath?: string;
+}
+
+const { currentPath = Astro.url.pathname } = Astro.props;
+
+const navigation = [
+  { name: 'Home', href: '/', current: currentPath === '/' },
+  { name: 'About', href: '/about', current: currentPath === '/about' },
+  { name: 'Research', href: '/methodology', current: currentPath === '/methodology' },
+  { name: 'Findings', href: '/findings', current: currentPath === '/findings' },
+  { name: 'Solution', href: '/solution', current: currentPath === '/solution' }
+];
+
+const ctaButton = {
+  text: 'Analyze My Route',
+  href: '/#route-analyzer',
+  variant: 'primary'
+};
+---
+
+<header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50 print:static print:shadow-none">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-16 lg:h-20">
+      <!-- Logo and brand -->
+      <div class="flex items-center">
+        <a href="/" class="flex items-center space-x-3 group">
+          <div class="flex-shrink-0">
+            <!-- ClearLane Logo -->
+            <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+              <svg
+                viewBox="0 0 24 24"
+                class="w-6 h-6 text-white"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" />
+                <path d="M2 17L12 22L22 17" />
+                <path d="M2 12L12 17L22 12" />
+              </svg>
+            </div>
+          </div>
+          <div class="hidden sm:block">
+            <div class="text-xl font-bold text-gray-900 group-hover:text-primary transition-colors">
+              ClearLane
+            </div>
+            <div class="text-sm text-gray-600 -mt-1">
+              Initiative
+            </div>
+          </div>
+        </a>
+      </div>
+
+      <!-- Desktop navigation -->
+      <nav class="hidden lg:flex space-x-8" aria-label="Main navigation">
+        {navigation.map((item) => (
+          <a
+            href={item.href}
+            class={`px-3 py-2 text-sm font-medium transition-colors rounded-lg ${
+              item.current
+                ? 'text-primary bg-primary/10'
+                : 'text-gray-700 hover:text-primary hover:bg-gray-50'
+            }`}
+            aria-current={item.current ? 'page' : undefined}
+          >
+            {item.name}
+          </a>
+        ))}
+      </nav>
+
+      <!-- CTA and mobile menu button -->
+      <div class="flex items-center space-x-4">
+        <!-- Desktop CTA -->
+        <div class="hidden md:block">
+          <a
+            href={ctaButton.href}
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors no-print"
+          >
+            🚌 {ctaButton.text}
+          </a>
+        </div>
+
+        <!-- Mobile menu button -->
+        <button
+          type="button"
+          id="mobile-menu-button"
+          class="lg:hidden inline-flex items-center justify-center p-2 rounded-lg text-gray-700 hover:text-primary hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary no-print"
+          aria-controls="mobile-menu"
+          aria-expanded="false"
+          aria-label="Open main menu"
+        >
+          <!-- Hamburger icon -->
+          <svg
+            id="menu-icon-open"
+            class="block h-6 w-6"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          </svg>
+          <!-- Close icon -->
+          <svg
+            id="menu-icon-close"
+            class="hidden h-6 w-6"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile navigation menu -->
+    <div
+      id="mobile-menu"
+      class="lg:hidden hidden border-t border-gray-200 bg-white no-print"
+      role="menu"
+      aria-orientation="vertical"
+      aria-labelledby="mobile-menu-button"
+    >
+      <div class="px-2 pt-2 pb-3 space-y-1">
+        {navigation.map((item) => (
+          <a
+            href={item.href}
+            class={`block px-3 py-2 text-base font-medium transition-colors rounded-lg ${
+              item.current
+                ? 'text-primary bg-primary/10'
+                : 'text-gray-700 hover:text-primary hover:bg-gray-50'
+            }`}
+            role="menuitem"
+            aria-current={item.current ? 'page' : undefined}
+          >
+            {item.name}
+          </a>
+        ))}
+
+        <!-- Mobile CTA -->
+        <div class="pt-4 border-t border-gray-200">
+          <a
+            href={ctaButton.href}
+            class="block w-full px-3 py-2 text-center text-base font-medium text-white bg-primary hover:bg-primary-dark rounded-lg transition-colors"
+            role="menuitem"
+          >
+            🚌 {ctaButton.text}
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress indicator for scrolling (optional enhancement) -->
+  <div
+    id="scroll-progress"
+    class="h-0.5 bg-primary transform origin-left scale-x-0 transition-transform duration-150 no-print"
+  ></div>
+</header>
+
+<style>
+  /* Smooth menu animations */
+  #mobile-menu {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out;
+  }
+
+  #mobile-menu.open {
+    max-height: 400px;
+  }
+
+  /* Backdrop blur for better readability */
+  header {
+    backdrop-filter: blur(8px);
+    background-color: rgba(255, 255, 255, 0.95);
+  }
+
+  /* Scroll progress bar */
+  #scroll-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+    z-index: 10;
+  }
+
+  /* High contrast mode */
+  @media (prefers-contrast: high) {
+    header {
+      background-color: white;
+      backdrop-filter: none;
+    }
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    #mobile-menu {
+      transition: none;
+    }
+
+    #scroll-progress {
+      transition: none;
+    }
+  }
+
+  /* Print styles */
+  @media print {
+    header {
+      background: white !important;
+      box-shadow: none !important;
+      border-bottom: 2px solid black !important;
+      position: static !important;
+    }
+
+    .no-print {
+      display: none !important;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const menuIconOpen = document.getElementById('menu-icon-open');
+    const menuIconClose = document.getElementById('menu-icon-close');
+    const scrollProgress = document.getElementById('scroll-progress');
+
+    // Mobile menu toggle
+    if (mobileMenuButton && mobileMenu && menuIconOpen && menuIconClose) {
+      let isMenuOpen = false;
+
+      const toggleMenu = () => {
+        isMenuOpen = !isMenuOpen;
+
+        // Update ARIA attributes
+        mobileMenuButton.setAttribute('aria-expanded', isMenuOpen.toString());
+
+        // Toggle menu visibility
+        if (isMenuOpen) {
+          mobileMenu.classList.remove('hidden');
+          mobileMenu.classList.add('open');
+          menuIconOpen.classList.add('hidden');
+          menuIconClose.classList.remove('hidden');
+        } else {
+          mobileMenu.classList.remove('open');
+          setTimeout(() => {
+            mobileMenu.classList.add('hidden');
+          }, 300); // Wait for animation
+          menuIconOpen.classList.remove('hidden');
+          menuIconClose.classList.add('hidden');
+        }
+      };
+
+      // Button click handler
+      mobileMenuButton.addEventListener('click', toggleMenu);
+
+      // Close menu when clicking outside
+      document.addEventListener('click', (e) => {
+        if (isMenuOpen && !mobileMenuButton.contains(e.target as Node) && !mobileMenu.contains(e.target as Node)) {
+          toggleMenu();
+        }
+      });
+
+      // Close menu on escape key
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isMenuOpen) {
+          toggleMenu();
+          mobileMenuButton.focus();
+        }
+      });
+
+      // Close menu when navigating
+      const mobileLinks = mobileMenu.querySelectorAll('a');
+      mobileLinks.forEach(link => {
+        link.addEventListener('click', () => {
+          if (isMenuOpen) {
+            toggleMenu();
+          }
+        });
+      });
+    }
+
+    // Scroll progress indicator
+    if (scrollProgress) {
+      const updateScrollProgress = () => {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const scrollPercentage = (scrollTop / scrollHeight) * 100;
+
+        scrollProgress.style.transform = `scaleX(${Math.min(scrollPercentage / 100, 1)})`;
+      };
+
+      // Update on scroll
+      let ticking = false;
+      const handleScroll = () => {
+        if (!ticking) {
+          requestAnimationFrame(() => {
+            updateScrollProgress();
+            ticking = false;
+          });
+          ticking = true;
+        }
+      };
+
+      window.addEventListener('scroll', handleScroll, { passive: true });
+
+      // Initial update
+      updateScrollProgress();
+    }
+
+    // Smooth scroll for anchor links
+    const anchorLinks = document.querySelectorAll('a[href*="#"]');
+    anchorLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        const href = link.getAttribute('href');
+        if (href && href.includes('#')) {
+          const targetId = href.split('#')[1];
+          const targetElement = document.getElementById(targetId);
+
+          if (targetElement) {
+            e.preventDefault();
+
+            // Close mobile menu if open
+            if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
+              mobileMenu.classList.add('hidden');
+            }
+
+            // Scroll to target
+            targetElement.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+
+            // Update focus for accessibility
+            targetElement.focus();
+          }
+        }
+      });
+    });
+
+    // Header scroll behavior
+    let lastScrollY = 0;
+    let headerVisible = true;
+    const header = document.querySelector('header');
+
+    const handleHeaderScroll = () => {
+      const currentScrollY = window.pageYOffset;
+
+      if (currentScrollY > lastScrollY && currentScrollY > 100 && headerVisible) {
+        // Scrolling down, hide header
+        if (header) {
+          header.style.transform = 'translateY(-100%)';
+          headerVisible = false;
+        }
+      } else if (currentScrollY < lastScrollY && !headerVisible) {
+        // Scrolling up, show header
+        if (header) {
+          header.style.transform = 'translateY(0)';
+          headerVisible = true;
+        }
+      }
+
+      lastScrollY = currentScrollY;
+    };
+
+    // Only enable header hiding on larger screens
+    if (window.innerWidth >= 1024) {
+      window.addEventListener('scroll', () => {
+        if (!(window as any).ticking) {
+          requestAnimationFrame(() => {
+            handleHeaderScroll();
+            (window as any).ticking = false;
+          });
+          (window as any).ticking = true;
+        }
+      }, { passive: true });
+    }
+
+    // Accessibility improvements
+    const navLinks = document.querySelectorAll('nav a');
+    navLinks.forEach(link => {
+      link.addEventListener('focus', () => {
+        // Ensure focused links are visible
+        link.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    });
+  });
+</script>

@@ -1,0 +1,139 @@
+import type { APIRoute } from 'astro';
+
+const robotsTxt = `
+User-agent: *
+Allow: /
+
+# High-priority pages
+Allow: /
+Allow: /solution
+Allow: /findings
+Allow: /methodology
+Allow: /about
+
+# API endpoints
+Disallow: /api/
+Disallow: /_astro/
+Disallow: /admin/
+
+# Temporary or draft content
+Disallow: /draft/
+Disallow: /preview/
+Disallow: /test/
+
+# Media and assets (allow but deprioritize)
+Allow: /images/
+Allow: /documents/
+Allow: /data/
+
+# Search and pagination
+Allow: /search
+Allow: /sitemap.xml
+Allow: /sitemap-index.xml
+
+# Social media and external links
+Allow: /press-kit
+Allow: /media
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://clearlane.org/sitemap-index.xml
+Sitemap: https://clearlane.org/sitemap-0.xml
+
+# Specific bot instructions
+User-agent: Googlebot
+Crawl-delay: 0
+Allow: /
+
+User-agent: Bingbot
+Crawl-delay: 1
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+Allow: /press-kit
+Allow: /solution
+
+User-agent: TwitterBot
+Allow: /
+Allow: /findings
+Allow: /press-kit
+
+User-agent: facebookexternalhit
+Allow: /
+Allow: /press-kit
+Allow: /solution
+
+# Block AI training crawlers (optional - uncomment if desired)
+# User-agent: GPTBot
+# Disallow: /
+# User-agent: ChatGPT-User
+# Disallow: /
+# User-agent: CCBot
+# Disallow: /
+
+# Academic and research crawlers
+User-agent: ia_archiver
+Allow: /
+Allow: /methodology
+Allow: /findings
+
+# Archive crawlers
+User-agent: archive.org_bot
+Allow: /
+Crawl-delay: 2
+
+# News and media crawlers
+User-agent: NewsBot
+Allow: /press-kit
+Allow: /findings
+Allow: /solution
+Crawl-delay: 1
+
+# SEO and monitoring tools
+User-agent: SemrushBot
+Allow: /
+Crawl-delay: 2
+
+User-agent: AhrefsBot
+Allow: /
+Crawl-delay: 2
+
+User-agent: MJ12bot
+Allow: /
+Crawl-delay: 5
+
+# Block malicious or excessive crawlers
+User-agent: SemrushBot-SA
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /
+
+User-agent: YandexBot
+Disallow: /
+
+User-agent: BaiduSpider
+Disallow: /
+
+# Block email harvesters
+User-agent: EmailSiphon
+Disallow: /
+
+User-agent: EmailWolf
+Disallow: /
+
+User-agent: ExtractorPro
+Disallow: /
+`.trim();
+
+export const GET: APIRoute = () => {
+  return new Response(robotsTxt, {
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
+    },
+  });
+};

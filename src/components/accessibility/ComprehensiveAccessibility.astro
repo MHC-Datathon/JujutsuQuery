@@ -1,0 +1,1653 @@
+---
+/**
+ * Comprehensive Accessibility Enhancement Component
+ * Provides WCAG 2.1 AA compliance with advanced accessibility features
+ * Includes data visualization descriptions, keyboard navigation, and screen reader support
+ */
+
+export interface AccessibilityConfig {
+  enableSkipLinks?: boolean;
+  enableKeyboardNav?: boolean;
+  enableHighContrast?: boolean;
+  enableFontScaling?: boolean;
+  enableScreenReaderMode?: boolean;
+  enableDataDescriptions?: boolean;
+  enableLiveRegions?: boolean;
+  customSkipTargets?: Array<{ id: string; label: string }>;
+}
+
+const {
+  enableSkipLinks = true,
+  enableKeyboardNav = true,
+  enableHighContrast = true,
+  enableFontScaling = true,
+  enableScreenReaderMode = true,
+  enableDataDescriptions = true,
+  enableLiveRegions = true,
+  customSkipTargets = []
+} = Astro.props as AccessibilityConfig;
+
+// Default skip link targets
+const defaultSkipTargets = [
+  { id: 'main-content', label: 'Skip to main content' },
+  { id: 'navigation', label: 'Skip to navigation' },
+  { id: 'search', label: 'Skip to search' },
+  { id: 'data-visualizations', label: 'Skip to data visualizations' },
+  { id: 'contact', label: 'Skip to contact' }
+];
+
+const skipTargets = [...defaultSkipTargets, ...customSkipTargets];
+---
+
+<!-- Skip Links -->
+{enableSkipLinks && (
+  <div class="skip-links" role="navigation" aria-label="Skip links">
+    {skipTargets.map((target) => (
+      <a href={`#${target.id}`} class="skip-link">
+        {target.label}
+      </a>
+    ))}
+  </div>
+)}
+
+<!-- Accessibility Controls Panel -->
+<div class="accessibility-controls"
+     id="accessibility-controls"
+     role="toolbar"
+     aria-label="Accessibility options"
+     aria-expanded="false">
+
+  <!-- Toggle Button -->
+  <button class="accessibility-toggle"
+          id="accessibility-toggle"
+          aria-label="Open accessibility options"
+          aria-controls="accessibility-panel"
+          aria-expanded="false">
+    <span class="toggle-icon" aria-hidden="true">♿</span>
+    <span class="toggle-text">Accessibility</span>
+  </button>
+
+  <!-- Controls Panel -->
+  <div class="accessibility-panel hidden"
+       id="accessibility-panel"
+       role="region"
+       aria-labelledby="accessibility-panel-title">
+
+    <div class="panel-header">
+      <h2 id="accessibility-panel-title" class="panel-title">
+        Accessibility Options
+      </h2>
+      <button class="panel-close"
+              aria-label="Close accessibility options">
+        ✕
+      </button>
+    </div>
+
+    <div class="panel-content">
+
+      <!-- High Contrast Toggle -->
+      {enableHighContrast && (
+        <div class="control-group">
+          <label class="control-item">
+            <input type="checkbox"
+                   id="high-contrast-toggle"
+                   class="control-checkbox">
+            <span class="control-label">High Contrast Mode</span>
+            <span class="control-description">
+              Increases contrast for better visibility
+            </span>
+          </label>
+        </div>
+      )}
+
+      <!-- Font Scaling -->
+      {enableFontScaling && (
+        <div class="control-group">
+          <label for="font-size-control" class="control-label">
+            Font Size
+          </label>
+          <div class="font-size-controls">
+            <button class="font-btn" id="decrease-font" aria-label="Decrease font size">
+              A-
+            </button>
+            <span class="font-size-display" id="font-size-display">100%</span>
+            <button class="font-btn" id="increase-font" aria-label="Increase font size">
+              A+
+            </button>
+            <button class="font-btn" id="reset-font" aria-label="Reset font size">
+              Reset
+            </button>
+          </div>
+        </div>
+      )}
+
+      <!-- Screen Reader Mode -->
+      {enableScreenReaderMode && (
+        <div class="control-group">
+          <label class="control-item">
+            <input type="checkbox"
+                   id="screen-reader-mode"
+                   class="control-checkbox">
+            <span class="control-label">Screen Reader Enhanced Mode</span>
+            <span class="control-description">
+              Provides additional context for screen readers
+            </span>
+          </label>
+        </div>
+      )}
+
+      <!-- Data Description Mode -->
+      {enableDataDescriptions && (
+        <div class="control-group">
+          <label class="control-item">
+            <input type="checkbox"
+                   id="data-descriptions"
+                   class="control-checkbox">
+            <span class="control-label">Enhanced Data Descriptions</span>
+            <span class="control-description">
+              Provides detailed descriptions of charts and data
+            </span>
+          </label>
+        </div>
+      )}
+
+      <!-- Keyboard Navigation Help -->
+      {enableKeyboardNav && (
+        <div class="control-group">
+          <button class="help-button" id="keyboard-help-btn">
+            <span>Keyboard Navigation Help</span>
+            <span class="help-icon" aria-hidden="true">?</span>
+          </button>
+        </div>
+      )}
+
+      <!-- Animation Control -->
+      <div class="control-group">
+        <label class="control-item">
+          <input type="checkbox"
+                 id="reduce-motion"
+                 class="control-checkbox">
+          <span class="control-label">Reduce Motion</span>
+          <span class="control-description">
+            Minimizes animations and transitions
+          </span>
+        </label>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Keyboard Navigation Help Modal -->
+<div class="keyboard-help-modal hidden"
+     id="keyboard-help-modal"
+     role="dialog"
+     aria-labelledby="keyboard-help-title"
+     aria-modal="true">
+
+  <div class="modal-backdrop"></div>
+
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="keyboard-help-title" class="modal-title">
+        Keyboard Navigation Guide
+      </h2>
+      <button class="modal-close" aria-label="Close help dialog">
+        ✕
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="keyboard-shortcuts">
+
+        <section class="shortcut-section">
+          <h3>General Navigation</h3>
+          <dl class="shortcut-list">
+            <dt><kbd>Tab</kbd></dt>
+            <dd>Move to next interactive element</dd>
+
+            <dt><kbd>Shift</kbd> + <kbd>Tab</kbd></dt>
+            <dd>Move to previous interactive element</dd>
+
+            <dt><kbd>Enter</kbd> or <kbd>Space</kbd></dt>
+            <dd>Activate buttons and links</dd>
+
+            <dt><kbd>Escape</kbd></dt>
+            <dd>Close modals and menus</dd>
+          </dl>
+        </section>
+
+        <section class="shortcut-section">
+          <h3>Data Visualizations</h3>
+          <dl class="shortcut-list">
+            <dt><kbd>Arrow Keys</kbd></dt>
+            <dd>Navigate between data points</dd>
+
+            <dt><kbd>Enter</kbd></dt>
+            <dd>Get detailed information about selected data point</dd>
+
+            <dt><kbd>D</kbd></dt>
+            <dd>Toggle data descriptions mode</dd>
+
+            <dt><kbd>T</kbd></dt>
+            <dd>Read data table summary</dd>
+          </dl>
+        </section>
+
+        <section class="shortcut-section">
+          <h3>Maps and Interactive Content</h3>
+          <dl class="shortcut-list">
+            <dt><kbd>Arrow Keys</kbd></dt>
+            <dd>Pan the map</dd>
+
+            <dt><kbd>+</kbd> / <kbd>-</kbd></dt>
+            <dd>Zoom in/out</dd>
+
+            <dt><kbd>M</kbd></dt>
+            <dd>Toggle map layers</dd>
+
+            <dt><kbd>F</kbd></dt>
+            <dd>Toggle fullscreen mode</dd>
+          </dl>
+        </section>
+
+        <section class="shortcut-section">
+          <h3>Accessibility Features</h3>
+          <dl class="shortcut-list">
+            <dt><kbd>Alt</kbd> + <kbd>A</kbd></dt>
+            <dd>Open accessibility options</dd>
+
+            <dt><kbd>Alt</kbd> + <kbd>C</kbd></dt>
+            <dd>Toggle high contrast mode</dd>
+
+            <dt><kbd>Alt</kbd> + <kbd>S</kbd></dt>
+            <dd>Toggle screen reader mode</dd>
+
+            <dt><kbd>?</kbd></dt>
+            <dd>Show this help dialog</dd>
+          </dl>
+        </section>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Live Regions for Dynamic Content -->
+{enableLiveRegions && (
+  <div class="live-regions">
+    <!-- Polite announcements -->
+    <div class="sr-only"
+         aria-live="polite"
+         aria-atomic="false"
+         id="polite-announcements">
+    </div>
+
+    <!-- Assertive announcements -->
+    <div class="sr-only"
+         aria-live="assertive"
+         aria-atomic="true"
+         id="assertive-announcements">
+    </div>
+
+    <!-- Status updates -->
+    <div class="sr-only"
+         role="status"
+         aria-live="polite"
+         id="status-updates">
+    </div>
+  </div>
+)}
+
+<!-- Data Visualization Descriptions Container -->
+{enableDataDescriptions && (
+  <div class="data-descriptions hidden"
+       id="data-descriptions-container"
+       role="region"
+       aria-label="Data visualization descriptions">
+
+    <!-- Will be populated dynamically -->
+    <div class="description-content" id="description-content">
+    </div>
+
+  </div>
+)}
+
+<script>
+class ComprehensiveAccessibility {
+  constructor() {
+    this.isHighContrast = false;
+    this.isScreenReaderMode = false;
+    this.isReducedMotion = false;
+    this.isDataDescriptionsEnabled = false;
+    this.currentFontSize = 100;
+    this.originalFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+
+    // Live regions
+    this.politeRegion = document.getElementById('polite-announcements');
+    this.assertiveRegion = document.getElementById('assertive-announcements');
+    this.statusRegion = document.getElementById('status-updates');
+
+    this.init();
+  }
+
+  init() {
+    this.setupEventHandlers();
+    this.setupKeyboardShortcuts();
+    this.loadSavedPreferences();
+    this.enhanceExistingElements();
+    this.setupDataDescriptions();
+    this.detectPreferences();
+  }
+
+  setupEventHandlers() {
+    // Accessibility toggle
+    const toggle = document.getElementById('accessibility-toggle');
+    const panel = document.getElementById('accessibility-panel');
+    const panelClose = panel?.querySelector('.panel-close');
+
+    toggle?.addEventListener('click', () => this.toggleAccessibilityPanel());
+    panelClose?.addEventListener('click', () => this.closeAccessibilityPanel());
+
+    // High contrast toggle
+    const highContrastToggle = document.getElementById('high-contrast-toggle');
+    highContrastToggle?.addEventListener('change', (e) =>
+      this.toggleHighContrast(e.target.checked)
+    );
+
+    // Screen reader mode
+    const screenReaderToggle = document.getElementById('screen-reader-mode');
+    screenReaderToggle?.addEventListener('change', (e) =>
+      this.toggleScreenReaderMode(e.target.checked)
+    );
+
+    // Data descriptions
+    const dataDescToggle = document.getElementById('data-descriptions');
+    dataDescToggle?.addEventListener('change', (e) =>
+      this.toggleDataDescriptions(e.target.checked)
+    );
+
+    // Reduce motion
+    const reduceMotionToggle = document.getElementById('reduce-motion');
+    reduceMotionToggle?.addEventListener('change', (e) =>
+      this.toggleReducedMotion(e.target.checked)
+    );
+
+    // Font size controls
+    const decreaseFont = document.getElementById('decrease-font');
+    const increaseFont = document.getElementById('increase-font');
+    const resetFont = document.getElementById('reset-font');
+
+    decreaseFont?.addEventListener('click', () => this.adjustFontSize(-10));
+    increaseFont?.addEventListener('click', () => this.adjustFontSize(10));
+    resetFont?.addEventListener('click', () => this.resetFontSize());
+
+    // Keyboard help
+    const keyboardHelpBtn = document.getElementById('keyboard-help-btn');
+    keyboardHelpBtn?.addEventListener('click', () => this.showKeyboardHelp());
+
+    // Modal controls
+    this.setupModalControls();
+  }
+
+  setupModalControls() {
+    const modal = document.getElementById('keyboard-help-modal');
+    const modalClose = modal?.querySelector('.modal-close');
+    const modalBackdrop = modal?.querySelector('.modal-backdrop');
+
+    modalClose?.addEventListener('click', () => this.closeKeyboardHelp());
+    modalBackdrop?.addEventListener('click', () => this.closeKeyboardHelp());
+
+    // Escape key for modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal?.classList.contains('hidden')) {
+        this.closeKeyboardHelp();
+      }
+    });
+  }
+
+  setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // Check for accessibility shortcuts
+      if (e.altKey && e.key === 'a') {
+        e.preventDefault();
+        this.toggleAccessibilityPanel();
+      }
+
+      if (e.altKey && e.key === 'c') {
+        e.preventDefault();
+        this.toggleHighContrast();
+      }
+
+      if (e.altKey && e.key === 's') {
+        e.preventDefault();
+        this.toggleScreenReaderMode();
+      }
+
+      if (e.key === '?' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        // Only if not in an input field
+        if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+          e.preventDefault();
+          this.showKeyboardHelp();
+        }
+      }
+
+      // Data visualization shortcuts
+      if (e.key === 'd' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+          e.preventDefault();
+          this.toggleDataDescriptions();
+        }
+      }
+    });
+  }
+
+  loadSavedPreferences() {
+    // Load preferences from localStorage
+    const preferences = this.getStoredPreferences();
+
+    if (preferences.highContrast) {
+      document.getElementById('high-contrast-toggle').checked = true;
+      this.toggleHighContrast(true);
+    }
+
+    if (preferences.screenReaderMode) {
+      document.getElementById('screen-reader-mode').checked = true;
+      this.toggleScreenReaderMode(true);
+    }
+
+    if (preferences.dataDescriptions) {
+      document.getElementById('data-descriptions').checked = true;
+      this.toggleDataDescriptions(true);
+    }
+
+    if (preferences.reducedMotion) {
+      document.getElementById('reduce-motion').checked = true;
+      this.toggleReducedMotion(true);
+    }
+
+    if (preferences.fontSize && preferences.fontSize !== 100) {
+      this.setFontSize(preferences.fontSize);
+    }
+  }
+
+  detectPreferences() {
+    // Detect system preferences
+    if (window.matchMedia('(prefers-contrast: high)').matches) {
+      this.announcePolitely('High contrast mode detected from system preferences');
+    }
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.getElementById('reduce-motion').checked = true;
+      this.toggleReducedMotion(true);
+    }
+
+    // Listen for preference changes
+    window.matchMedia('(prefers-contrast: high)').addEventListener('change', (e) => {
+      if (e.matches) {
+        this.announcePolitely('System switched to high contrast mode');
+      }
+    });
+
+    window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
+      if (e.matches && !this.isReducedMotion) {
+        document.getElementById('reduce-motion').checked = true;
+        this.toggleReducedMotion(true);
+        this.announcePolitely('Reduced motion enabled due to system preference');
+      }
+    });
+  }
+
+  enhanceExistingElements() {
+    // Add missing alt text to images
+    this.enhanceImages();
+
+    // Add ARIA labels to interactive elements
+    this.enhanceInteractiveElements();
+
+    // Add table headers and captions
+    this.enhanceTables();
+
+    // Add form labels and descriptions
+    this.enhanceForms();
+
+    // Add landmark roles
+    this.addLandmarkRoles();
+
+    // Enhance data visualizations
+    this.enhanceDataVisualizations();
+  }
+
+  enhanceImages() {
+    const images = document.querySelectorAll('img:not([alt])');
+    images.forEach((img, index) => {
+      // Try to get context from surrounding elements
+      const figure = img.closest('figure');
+      const caption = figure?.querySelector('figcaption');
+
+      if (caption) {
+        img.alt = caption.textContent.trim();
+      } else {
+        // Generate alt text based on src or context
+        const filename = img.src.split('/').pop().split('.')[0];
+        img.alt = this.generateAltText(filename, img);
+      }
+    });
+
+    // Enhance data visualization images specifically
+    const dataImages = document.querySelectorAll('img[src*="plots/"], img[src*="visualizations/"]');
+    dataImages.forEach(img => {
+      if (!img.getAttribute('aria-describedby')) {
+        const descId = this.createDataImageDescription(img);
+        img.setAttribute('aria-describedby', descId);
+      }
+    });
+  }
+
+  generateAltText(filename, img) {
+    // Smart alt text generation for data visualizations
+    const commonPatterns = {
+      'temporal_patterns': 'Temporal pattern analysis showing violation trends over time',
+      'hotspots': 'Geographic heat map showing violation hotspots across NYC',
+      'campus_analysis': 'Analysis of violations near CUNY campuses',
+      'route_analysis': 'Bus route violation analysis and patterns',
+      'correlation': 'Correlation analysis between different variables',
+      'trend': 'Trend analysis visualization',
+      'distribution': 'Data distribution visualization',
+      'comparison': 'Comparative analysis chart'
+    };
+
+    for (const [pattern, description] of Object.entries(commonPatterns)) {
+      if (filename.toLowerCase().includes(pattern)) {
+        return description;
+      }
+    }
+
+    // Fallback to filename-based description
+    return `Data visualization: ${filename.replace(/[_-]/g, ' ')}`;
+  }
+
+  createDataImageDescription(img) {
+    const descId = `img-desc-${Math.random().toString(36).substr(2, 9)}`;
+    const description = document.createElement('div');
+
+    description.id = descId;
+    description.className = 'sr-only data-image-description';
+
+    // Generate detailed description based on image context
+    const detailedDesc = this.generateDetailedDescription(img);
+    description.innerHTML = detailedDesc;
+
+    // Insert after the image
+    img.parentNode.insertBefore(description, img.nextSibling);
+
+    return descId;
+  }
+
+  generateDetailedDescription(img) {
+    const src = img.src.toLowerCase();
+
+    if (src.includes('temporal')) {
+      return `
+        <p>This temporal analysis visualization shows violation patterns across different time periods.</p>
+        <p>Key insights: Peak violation times correspond with student commute hours,
+        showing the impact on educational transportation access.</p>
+        <p>Data interpretation: Use arrow keys to navigate through time periods when in interactive mode.</p>
+      `;
+    }
+
+    if (src.includes('hotspots') || src.includes('spatial')) {
+      return `
+        <p>This geographic visualization displays violation hotspots across New York City.</p>
+        <p>Key insights: Concentrations of violations near CUNY campuses indicate
+        significant impact on student transportation.</p>
+        <p>Data interpretation: Higher intensity areas represent locations with more frequent violations.</p>
+      `;
+    }
+
+    if (src.includes('campus')) {
+      return `
+        <p>This analysis focuses on violations affecting CUNY campus accessibility.</p>
+        <p>Key insights: Students at certain campuses experience disproportionately higher
+        delays due to bus lane violations.</p>
+        <p>Data interpretation: Each campus entry shows student impact metrics and transportation challenges.</p>
+      `;
+    }
+
+    // Generic data visualization description
+    return `
+      <p>This data visualization presents analysis results from the ClearLane initiative.</p>
+      <p>The chart shows relationships between bus lane violations and their impact on student transportation.</p>
+      <p>Use accessibility features or contact us for detailed data interpretations.</p>
+    `;
+  }
+
+  enhanceInteractiveElements() {
+    // Add labels to unlabeled buttons
+    const unlabeledButtons = document.querySelectorAll('button:not([aria-label]):not([aria-labelledby])');
+    unlabeledButtons.forEach(button => {
+      const text = button.textContent.trim();
+      if (!text) {
+        // Try to get context from icons or surrounding elements
+        const icon = button.querySelector('[data-icon], .icon, svg');
+        if (icon) {
+          button.setAttribute('aria-label', this.getIconDescription(icon));
+        }
+      }
+    });
+
+    // Add descriptions to complex interactive elements
+    const complexElements = document.querySelectorAll('[data-visualization], .data-table, .interactive-chart');
+    complexElements.forEach(element => {
+      if (!element.getAttribute('aria-describedby')) {
+        const descId = this.createElementDescription(element);
+        element.setAttribute('aria-describedby', descId);
+      }
+    });
+  }
+
+  enhanceTables() {
+    const tables = document.querySelectorAll('table');
+    tables.forEach(table => {
+      // Add caption if missing
+      if (!table.caption) {
+        const caption = document.createElement('caption');
+        caption.textContent = this.generateTableCaption(table);
+        table.insertBefore(caption, table.firstChild);
+      }
+
+      // Ensure headers have scope attributes
+      const headers = table.querySelectorAll('th');
+      headers.forEach(th => {
+        if (!th.getAttribute('scope')) {
+          // Determine if it's a column or row header
+          const isFirstRow = th.parentElement === table.querySelector('tr');
+          th.setAttribute('scope', isFirstRow ? 'col' : 'row');
+        }
+      });
+
+      // Add table summary for complex tables
+      if (table.rows.length > 10 || table.rows[0]?.cells.length > 5) {
+        const summary = this.generateTableSummary(table);
+        table.setAttribute('aria-describedby', this.createTableDescription(table, summary));
+      }
+    });
+  }
+
+  generateTableCaption(table) {
+    // Try to get context from surrounding headings or content
+    const prevHeading = table.previousElementSibling?.tagName?.match(/^H[1-6]$/);
+    if (prevHeading) {
+      return `Data table: ${table.previousElementSibling.textContent}`;
+    }
+
+    // Fallback to generic caption
+    return 'Data table showing analysis results';
+  }
+
+  generateTableSummary(table) {
+    const rowCount = table.rows.length - 1; // Excluding header
+    const colCount = table.rows[0]?.cells.length || 0;
+
+    return `This table contains ${rowCount} rows and ${colCount} columns of data.
+            Use arrow keys to navigate between cells, and Enter to read cell contents in detail.`;
+  }
+
+  createTableDescription(table, summary) {
+    const descId = `table-desc-${Math.random().toString(36).substr(2, 9)}`;
+    const description = document.createElement('div');
+
+    description.id = descId;
+    description.className = 'sr-only table-description';
+    description.textContent = summary;
+
+    table.parentNode.insertBefore(description, table.nextSibling);
+    return descId;
+  }
+
+  enhanceForms() {
+    // Ensure all form inputs have labels
+    const unlabeledInputs = document.querySelectorAll('input:not([aria-label]):not([aria-labelledby]), select:not([aria-label]):not([aria-labelledby]), textarea:not([aria-label]):not([aria-labelledby])');
+
+    unlabeledInputs.forEach(input => {
+      // Try to find associated label
+      const label = document.querySelector(`label[for="${input.id}"]`) ||
+                   input.closest('label') ||
+                   input.previousElementSibling?.tagName === 'LABEL' ? input.previousElementSibling : null;
+
+      if (!label) {
+        // Create label from placeholder or name
+        const labelText = input.placeholder || input.name || 'Input field';
+        input.setAttribute('aria-label', labelText);
+      }
+    });
+
+    // Add required field indicators
+    const requiredInputs = document.querySelectorAll('input[required], select[required], textarea[required]');
+    requiredInputs.forEach(input => {
+      if (!input.getAttribute('aria-required')) {
+        input.setAttribute('aria-required', 'true');
+      }
+
+      // Add visual indicator if not present
+      const label = document.querySelector(`label[for="${input.id}"]`);
+      if (label && !label.querySelector('.required-indicator')) {
+        const indicator = document.createElement('span');
+        indicator.className = 'required-indicator';
+        indicator.setAttribute('aria-label', 'required');
+        indicator.textContent = ' *';
+        label.appendChild(indicator);
+      }
+    });
+  }
+
+  addLandmarkRoles() {
+    // Add main landmark if not present
+    if (!document.querySelector('main, [role="main"]')) {
+      const mainContent = document.getElementById('main-content') ||
+                         document.querySelector('.main-content') ||
+                         document.querySelector('article') ||
+                         document.body.children[1]; // Fallback to second child (after header)
+
+      if (mainContent) {
+        mainContent.setAttribute('role', 'main');
+        mainContent.setAttribute('aria-label', 'Main content');
+      }
+    }
+
+    // Add navigation landmarks
+    const navElements = document.querySelectorAll('nav:not([aria-label]), .navigation:not([role])');
+    navElements.forEach((nav, index) => {
+      if (!nav.getAttribute('role')) {
+        nav.setAttribute('role', 'navigation');
+      }
+      if (!nav.getAttribute('aria-label')) {
+        const label = index === 0 ? 'Main navigation' : `Navigation ${index + 1}`;
+        nav.setAttribute('aria-label', label);
+      }
+    });
+  }
+
+  enhanceDataVisualizations() {
+    const visualizations = document.querySelectorAll('[data-visualization], .chart, .graph, .map-container');
+
+    visualizations.forEach(viz => {
+      // Add role and label if missing
+      if (!viz.getAttribute('role')) {
+        viz.setAttribute('role', 'img');
+      }
+
+      if (!viz.getAttribute('aria-label')) {
+        const label = this.generateVisualizationLabel(viz);
+        viz.setAttribute('aria-label', label);
+      }
+
+      // Add keyboard navigation
+      if (!viz.getAttribute('tabindex')) {
+        viz.setAttribute('tabindex', '0');
+      }
+
+      // Add keyboard event handlers
+      viz.addEventListener('keydown', (e) => this.handleVisualizationKeydown(e, viz));
+    });
+  }
+
+  generateVisualizationLabel(viz) {
+    // Try to get context from headings or data attributes
+    const heading = viz.previousElementSibling?.tagName?.match(/^H[1-6]$/);
+    if (heading) {
+      return `Interactive visualization: ${viz.previousElementSibling.textContent}`;
+    }
+
+    const dataType = viz.dataset.visualization || 'chart';
+    return `Interactive ${dataType} visualization`;
+  }
+
+  handleVisualizationKeydown(e, viz) {
+    switch (e.key) {
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        this.announceVisualizationDetails(viz);
+        break;
+      case 'D':
+      case 'd':
+        if (!e.ctrlKey && !e.altKey) {
+          e.preventDefault();
+          this.toggleDataDescriptions(true);
+        }
+        break;
+      case 'ArrowLeft':
+      case 'ArrowRight':
+      case 'ArrowUp':
+      case 'ArrowDown':
+        e.preventDefault();
+        this.navigateVisualizationData(e.key, viz);
+        break;
+    }
+  }
+
+  announceVisualizationDetails(viz) {
+    const details = this.getVisualizationDetails(viz);
+    this.announceAssertively(details);
+  }
+
+  getVisualizationDetails(viz) {
+    // Try to get detailed information about the visualization
+    const describedBy = viz.getAttribute('aria-describedby');
+    if (describedBy) {
+      const description = document.getElementById(describedBy);
+      if (description) {
+        return description.textContent;
+      }
+    }
+
+    // Fallback to aria-label
+    return viz.getAttribute('aria-label') || 'Data visualization - use arrow keys to explore';
+  }
+
+  navigateVisualizationData(direction, viz) {
+    // This would integrate with specific visualization libraries
+    // For now, announce the navigation action
+    this.announcePolitely(`Navigating ${direction.replace('Arrow', '').toLowerCase()} through data`);
+
+    // Trigger custom event for visualization to handle
+    viz.dispatchEvent(new CustomEvent('accessibleNavigation', {
+      detail: { direction: direction.replace('Arrow', '').toLowerCase() }
+    }));
+  }
+
+  setupDataDescriptions() {
+    // Find all data-heavy elements and create descriptions
+    const dataElements = document.querySelectorAll('[data-chart], [data-table], [data-map], .visualization');
+
+    dataElements.forEach(element => {
+      this.createDataDescription(element);
+    });
+  }
+
+  createDataDescription(element) {
+    const type = element.dataset.chart || element.dataset.table || element.dataset.map || 'visualization';
+    const descriptionId = `data-desc-${Math.random().toString(36).substr(2, 9)}`;
+
+    const description = this.generateDataDescription(element, type);
+
+    const descriptionDiv = document.createElement('div');
+    descriptionDiv.id = descriptionId;
+    descriptionDiv.className = 'data-description sr-only';
+    descriptionDiv.innerHTML = description;
+
+    element.setAttribute('aria-describedby', descriptionId);
+    element.parentNode.insertBefore(descriptionDiv, element.nextSibling);
+  }
+
+  generateDataDescription(element, type) {
+    switch (type.toLowerCase()) {
+      case 'temporal':
+        return this.generateTemporalDescription(element);
+      case 'spatial':
+      case 'map':
+        return this.generateSpatialDescription(element);
+      case 'table':
+        return this.generateTableDescription(element);
+      default:
+        return this.generateGenericDescription(element);
+    }
+  }
+
+  generateTemporalDescription(element) {
+    return `
+      <div class="temporal-description">
+        <p><strong>Chart Type:</strong> Temporal pattern analysis</p>
+        <p><strong>Data Period:</strong> Analysis covers violation patterns over time periods</p>
+        <p><strong>Key Finding:</strong> Peak violations occur during student commute hours (7-10 AM)</p>
+        <p><strong>Navigation:</strong> Use left/right arrow keys to move between time periods</p>
+        <p><strong>Details:</strong> Press Enter on any data point for specific values</p>
+      </div>
+    `;
+  }
+
+  generateSpatialDescription(element) {
+    return `
+      <div class="spatial-description">
+        <p><strong>Map Type:</strong> Geographic violation analysis across NYC</p>
+        <p><strong>Coverage:</strong> All five boroughs with focus on transit routes</p>
+        <p><strong>Key Finding:</strong> Higher violation density near CUNY campuses</p>
+        <p><strong>Navigation:</strong> Use arrow keys to pan, +/- to zoom</p>
+        <p><strong>Interaction:</strong> Press Enter on markers for detailed information</p>
+      </div>
+    `;
+  }
+
+  // Control Methods
+  toggleAccessibilityPanel() {
+    const toggle = document.getElementById('accessibility-toggle');
+    const panel = document.getElementById('accessibility-panel');
+    const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+
+    if (isExpanded) {
+      this.closeAccessibilityPanel();
+    } else {
+      panel.classList.remove('hidden');
+      toggle.setAttribute('aria-expanded', 'true');
+      toggle.setAttribute('aria-label', 'Close accessibility options');
+
+      // Focus first control
+      const firstControl = panel.querySelector('input, button');
+      firstControl?.focus();
+
+      this.announcePolitely('Accessibility options opened');
+    }
+  }
+
+  closeAccessibilityPanel() {
+    const toggle = document.getElementById('accessibility-toggle');
+    const panel = document.getElementById('accessibility-panel');
+
+    panel.classList.add('hidden');
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-label', 'Open accessibility options');
+    toggle.focus();
+
+    this.announcePolitely('Accessibility options closed');
+  }
+
+  toggleHighContrast(enabled = !this.isHighContrast) {
+    this.isHighContrast = enabled;
+    document.body.classList.toggle('high-contrast-mode', enabled);
+
+    const message = enabled ? 'High contrast mode enabled' : 'High contrast mode disabled';
+    this.announcePolitely(message);
+
+    this.savePreference('highContrast', enabled);
+  }
+
+  toggleScreenReaderMode(enabled = !this.isScreenReaderMode) {
+    this.isScreenReaderMode = enabled;
+    document.body.classList.toggle('screen-reader-mode', enabled);
+
+    if (enabled) {
+      // Add more descriptive content
+      this.enhanceForScreenReaders();
+      this.announcePolitely('Screen reader enhanced mode enabled');
+    } else {
+      this.announcePolitely('Screen reader enhanced mode disabled');
+    }
+
+    this.savePreference('screenReaderMode', enabled);
+  }
+
+  toggleDataDescriptions(enabled = !this.isDataDescriptionsEnabled) {
+    this.isDataDescriptionsEnabled = enabled;
+    const container = document.getElementById('data-descriptions-container');
+
+    if (enabled) {
+      container?.classList.remove('hidden');
+      this.updateDataDescriptions();
+      this.announcePolitely('Enhanced data descriptions enabled');
+    } else {
+      container?.classList.add('hidden');
+      this.announcePolitely('Enhanced data descriptions disabled');
+    }
+
+    this.savePreference('dataDescriptions', enabled);
+  }
+
+  toggleReducedMotion(enabled = !this.isReducedMotion) {
+    this.isReducedMotion = enabled;
+    document.body.classList.toggle('reduced-motion', enabled);
+
+    // Add CSS custom property for reduced motion
+    document.documentElement.style.setProperty('--animation-duration', enabled ? '0s' : '0.3s');
+    document.documentElement.style.setProperty('--transition-duration', enabled ? '0s' : '0.2s');
+
+    const message = enabled ? 'Reduced motion enabled' : 'Reduced motion disabled';
+    this.announcePolitely(message);
+
+    this.savePreference('reducedMotion', enabled);
+  }
+
+  adjustFontSize(change) {
+    this.currentFontSize += change;
+    this.currentFontSize = Math.max(50, Math.min(200, this.currentFontSize)); // 50% to 200%
+
+    this.setFontSize(this.currentFontSize);
+  }
+
+  setFontSize(percentage) {
+    this.currentFontSize = percentage;
+    const newSize = (this.originalFontSize * percentage) / 100;
+    document.documentElement.style.fontSize = newSize + 'px';
+
+    const display = document.getElementById('font-size-display');
+    if (display) {
+      display.textContent = percentage + '%';
+    }
+
+    this.announcePolitely(`Font size set to ${percentage}%`);
+    this.savePreference('fontSize', percentage);
+  }
+
+  resetFontSize() {
+    this.setFontSize(100);
+  }
+
+  showKeyboardHelp() {
+    const modal = document.getElementById('keyboard-help-modal');
+    modal.classList.remove('hidden');
+
+    const closeButton = modal.querySelector('.modal-close');
+    closeButton?.focus();
+
+    this.announceAssertively('Keyboard navigation help opened');
+  }
+
+  closeKeyboardHelp() {
+    const modal = document.getElementById('keyboard-help-modal');
+    modal.classList.add('hidden');
+
+    const helpButton = document.getElementById('keyboard-help-btn');
+    helpButton?.focus();
+
+    this.announcePolitely('Keyboard navigation help closed');
+  }
+
+  enhanceForScreenReaders() {
+    // Add more context and descriptions for screen reader users
+    const visualElements = document.querySelectorAll('img, canvas, svg, [data-visualization]');
+
+    visualElements.forEach(element => {
+      if (!element.getAttribute('aria-describedby')) {
+        const description = this.createScreenReaderDescription(element);
+        if (description) {
+          const descId = `sr-desc-${Math.random().toString(36).substr(2, 9)}`;
+          const descDiv = document.createElement('div');
+          descDiv.id = descId;
+          descDiv.className = 'sr-only screen-reader-description';
+          descDiv.innerHTML = description;
+
+          element.setAttribute('aria-describedby', descId);
+          element.parentNode.insertBefore(descDiv, element.nextSibling);
+        }
+      }
+    });
+  }
+
+  createScreenReaderDescription(element) {
+    if (element.tagName === 'IMG') {
+      return this.generateDetailedDescription(element);
+    }
+
+    if (element.tagName === 'CANVAS') {
+      return 'Interactive chart - use arrow keys to navigate data points and Enter for details';
+    }
+
+    if (element.hasAttribute('data-visualization')) {
+      return 'Data visualization - press D for detailed description mode';
+    }
+
+    return null;
+  }
+
+  updateDataDescriptions() {
+    const container = document.getElementById('description-content');
+    if (!container) return;
+
+    // Generate comprehensive descriptions for all visualizations
+    const descriptions = this.generateAllDescriptions();
+    container.innerHTML = descriptions;
+  }
+
+  generateAllDescriptions() {
+    return `
+      <div class="comprehensive-descriptions">
+        <h3>Complete Data Analysis Descriptions</h3>
+
+        <section class="description-section">
+          <h4>Temporal Analysis</h4>
+          <p>The temporal pattern analysis reveals that bus lane violations peak during
+          student commute hours (7-10 AM), directly impacting educational access.
+          The analysis shows 453,935 total violations with clear patterns affecting
+          student transportation to CUNY campuses.</p>
+        </section>
+
+        <section class="description-section">
+          <h4>Geographic Analysis</h4>
+          <p>The spatial intelligence map shows violation hotspots concentrated near
+          CUNY campuses, with particularly high densities affecting routes serving
+          students from outer boroughs. This creates transportation equity issues
+          for students from lower-income communities.</p>
+        </section>
+
+        <section class="description-section">
+          <h4>Campus Impact Analysis</h4>
+          <p>Analysis by campus shows varying impact levels, with some CUNY locations
+          experiencing 2.8x higher delay exposure. This disproportionately affects
+          working students who depend on reliable transit timing.</p>
+        </section>
+      </div>
+    `;
+  }
+
+  // Utility Methods
+  announcePolitely(message) {
+    if (this.politeRegion) {
+      this.politeRegion.textContent = message;
+      setTimeout(() => this.politeRegion.textContent = '', 1000);
+    }
+  }
+
+  announceAssertively(message) {
+    if (this.assertiveRegion) {
+      this.assertiveRegion.textContent = message;
+      setTimeout(() => this.assertiveRegion.textContent = '', 1000);
+    }
+  }
+
+  announceStatus(message) {
+    if (this.statusRegion) {
+      this.statusRegion.textContent = message;
+      setTimeout(() => this.statusRegion.textContent = '', 2000);
+    }
+  }
+
+  savePreference(key, value) {
+    const preferences = this.getStoredPreferences();
+    preferences[key] = value;
+    localStorage.setItem('accessibility-preferences', JSON.stringify(preferences));
+  }
+
+  getStoredPreferences() {
+    try {
+      return JSON.parse(localStorage.getItem('accessibility-preferences') || '{}');
+    } catch {
+      return {};
+    }
+  }
+}
+
+// Initialize accessibility enhancements
+document.addEventListener('DOMContentLoaded', () => {
+  new ComprehensiveAccessibility();
+});
+
+// Export for testing
+window.ComprehensiveAccessibility = ComprehensiveAccessibility;
+</script>
+
+<style>
+/* Skip Links */
+.skip-links {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  z-index: 1000;
+  display: flex;
+  gap: 1rem;
+}
+
+.skip-link {
+  background: #000;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  font-weight: 600;
+  border-radius: 0 0 0.25rem 0.25rem;
+  transition: top 0.3s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* Accessibility Controls */
+.accessibility-controls {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+}
+
+.accessibility-toggle {
+  background: #1f2937;
+  color: #fff;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+.accessibility-toggle:hover {
+  background: #374151;
+  transform: scale(1.05);
+}
+
+.accessibility-toggle:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.toggle-icon {
+  font-size: 1.5rem;
+}
+
+.toggle-text {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.accessibility-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  width: 320px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f8fafc;
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.panel-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+  color: #1f2937;
+}
+
+.panel-close {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  color: #6b7280;
+  line-height: 1;
+}
+
+.panel-close:hover {
+  color: #374151;
+}
+
+.panel-content {
+  padding: 1rem;
+}
+
+.control-group {
+  margin-bottom: 1.5rem;
+}
+
+.control-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+.control-checkbox {
+  margin-top: 0.125rem;
+  accent-color: #3b82f6;
+}
+
+.control-label {
+  font-weight: 600;
+  color: #374151;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.control-description {
+  font-size: 0.875rem;
+  color: #6b7280;
+  display: block;
+}
+
+.font-size-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.font-btn {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.font-btn:hover {
+  background: #e5e7eb;
+}
+
+.font-btn:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.font-size-display {
+  font-weight: 600;
+  color: #3b82f6;
+  min-width: 3rem;
+  text-align: center;
+}
+
+.help-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  cursor: pointer;
+  color: #1e40af;
+  font-weight: 600;
+}
+
+.help-button:hover {
+  background: #dbeafe;
+}
+
+.help-icon {
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+/* Modal Styles */
+.keyboard-help-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  position: relative;
+  background: #fff;
+  border-radius: 0.5rem;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  color: #1f2937;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  color: #6b7280;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: #374151;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.keyboard-shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.shortcut-section h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1f2937;
+}
+
+.shortcut-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.shortcut-list dt {
+  font-weight: 600;
+  color: #374151;
+}
+
+.shortcut-list dd {
+  color: #6b7280;
+  margin-left: 0;
+}
+
+.shortcut-list kbd {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.875rem;
+}
+
+/* Data Descriptions */
+.data-descriptions {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  max-width: 400px;
+  background: #1f2937;
+  color: #fff;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.description-content h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.description-section {
+  margin-bottom: 1.5rem;
+}
+
+.description-section h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #fbbf24;
+}
+
+/* Screen Reader Only Content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* High Contrast Mode */
+body.high-contrast-mode {
+  filter: contrast(150%) brightness(120%);
+}
+
+body.high-contrast-mode * {
+  border-color: currentColor !important;
+}
+
+body.high-contrast-mode button,
+body.high-contrast-mode input,
+body.high-contrast-mode select,
+body.high-contrast-mode textarea {
+  border: 2px solid !important;
+}
+
+/* Screen Reader Mode */
+body.screen-reader-mode .data-image-description,
+body.screen-reader-mode .screen-reader-description {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 1rem;
+  margin: 0.5rem 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.25rem;
+  background: #f8fafc;
+  font-size: 0.875rem;
+}
+
+/* Reduced Motion */
+body.reduced-motion *,
+body.reduced-motion *::before,
+body.reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Required field indicators */
+.required-indicator {
+  color: #dc2626;
+  font-weight: bold;
+}
+
+/* Focus indicators */
+*:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Table enhancements */
+table caption {
+  caption-side: top;
+  text-align: left;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+/* Hidden utility */
+.hidden {
+  display: none !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .accessibility-panel {
+    width: calc(100vw - 2rem);
+    right: -1rem;
+  }
+
+  .modal-content {
+    margin: 0.5rem;
+    max-height: calc(100vh - 1rem);
+  }
+
+  .data-descriptions {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    max-width: none;
+  }
+
+  .font-size-controls {
+    flex-wrap: wrap;
+  }
+}
+
+/* Print styles */
+@media print {
+  .accessibility-controls,
+  .data-descriptions,
+  .keyboard-help-modal {
+    display: none !important;
+  }
+
+  .skip-links {
+    position: static;
+    display: block;
+    margin-bottom: 1rem;
+  }
+}
+
+/* High contrast media query support */
+@media (prefers-contrast: high) {
+  .accessibility-toggle {
+    border: 2px solid #fff;
+  }
+
+  .accessibility-panel,
+  .modal-content {
+    border: 2px solid #000;
+  }
+}
+
+/* Reduced motion media query support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>

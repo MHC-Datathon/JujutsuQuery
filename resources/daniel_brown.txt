@@ -1,0 +1,1634 @@
+If you are participating in the Macaulay Honors Datathon and want to organize your code, something like this might help.
+
+It’s a clean, reproducible project template that:
+- Keeps your code, data, and notebooks organized
+- Makes it easy to publish results as a website with GitHub Pages + Jekyll
+- Supports everything from raw data → modeling → dashboards → final storytelling
+
+Whether you’re building analyses for work, school, or public data stories, this template gives you a strong structure and saves you time.
+
+A solid foundation for turning data projects into something shareable and professional.
+
+Github Repository: https://github.com/djbrown227/ds_int2_template
+
+Read the README.md and instructions.txt in the repository for setup
+
+Want to analyze bus routes at the segment level?
+
+I built a Python workflow that merges bus segment speeds with violations, giving a complete picture of performance and compliance. This allows us to view the bus route at the smaller scale of the segment. 
+
+Using Kepler.gl, I visualized BX19 segments in 3D—violations as columns, speed along the route.
+
+This tool lets you explore segment, direction, and hourly data, revealing slowdowns, congestion hotspots, and compliance patterns—perfect for datathon projects or transit analytics.
+
+Github Gist - https://lnkd.in/ejq5T-yk
+
+'''
+This script processes two transit datasets—violations and bus segment speeds—and links them together. It first converts violation records into a GeoJSON of point locations, then builds a GeoJSON of bus route segments with average speed and trip data from GTFS and speed files. Finally, it performs a spatial join so each violation is matched to the nearest segment on the same route, adding segment number, direction, and speed context. The result is a merged CSV that shows where and on which route segment a violation occurred.
+'''
+
+#Violations Dataset
+'''
+Purpose
+The code converts a DataFrame (ace_violations) containing bus-related violation data 
+into a GeoJSON file with point features, suitable for mapping in GIS tools like Kepler.gl, 
+Leaflet, or Mapbox.
+'''
+
+#Import Libraries
+import pandas as pd
+import os
+
+# Path to data folder relative to the notebook
+DATA_DIR = os.path.join("..", "data", "raw")
+ace_violations = pd.read_csv(os.path.join(DATA_DIR, "ACE_violations.csv"))
+ace_violations.head()
+
+import json
+import math
+
+features = []
+
+for _, row in ace_violations.iterrows():
+    try:
+        v_lat, v_lon = row["Violation Latitude"], row["Violation Longitude"]
+
+        # Skip rows with bad coords
+        if (
+            pd.isna(v_lat) or pd.isna(v_lon) or
+            not (math.isfinite(v_lat) and math.isfinite(v_lon))
+        ):
+            continue
+
+        # Properties (convert everything to string to avoid JSON issues)
+        props = {col: str(row[col]) for col in [
+            "Violation ID",
+            "Vehicle ID",
+            "First Occurrence",
+            "Last Occurrence",
+            "Violation Status",
+            "Violation Type",
+            "Bus Route ID",
+            "Stop ID",
+            "Stop Name"
+        ] if col in row}
+
+        feature = {
+            "type": "Feature",
+            "properties": props,
+            "geometry": {
+                "type": "Point",
+                "coordinates": [float(v_lon), float(v_lat)]
+            }
+        }
+        features.append(feature)
+    except Exception as e:
+        print(f"Skipping row due to error: {e}")
+
+geojson = {
+    "type": "FeatureCollection",
+    "features": features
+}
+
+with open("/Users/danielbrown/Desktop/datathon_project/data/processed/violations.geojson", "w", encoding="utf-8") as f:
+    json.dump(geojson, f, indent=2, ensure_ascii=False)
+
+print(f"✅ Saved {len(features)} point features to violations_points.geojson")
+
+'''
+# Preview first 3 features
+preview = {
+    "type": "FeatureCollection",
+    "features": features[:3]
+}
+
+print(json.dumps(preview, indent=2, ensure_ascii=False))
+'''
+
+import geopandas as gpd
+violations_gdf = gpd.read_file(
+    "/Users/danielbrown/Desktop/datathon_project/data/processed/violations.geojson"
+).set_crs(epsg=4326)
+
+
+#Bus Segment Speeds
+'''
+Purpose
+This code processes MTA bus route segment speeds and converts them into a GeoJSON file 
+of line segments along each bus route, including aggregated speed and trip information. 
+This is useful for mapping bus route performance in GIS tools like Kepler.gl or Mapbox.
+'''
+
+# Path to data folder relative to the notebook
+DATA_DIR = os.path.join("..", "data", "raw")
+
+import pandas as pd
+import json
+from math import radians, sin, cos, sqrt, atan2
+
+# --- 1. Load GTFS shapes and trips ---
+shapes = pd.read_csv("/Users/danielbrown/Desktop/gtfs_bx-3/shapes.txt")
+shapes = shapes.sort_values(["shape_id", "shape_pt_sequence"])
+
+trips = pd.read_csv("/Users/danielbrown/Desktop/gtfs_bx-3/trips.txt")
+
+# --- 2. Load speeds ---
+speeds = pd.read_csv(
+    "/Users/danielbrown/Desktop/MTA_Bus_Route_Segment_Speeds__2023_-_2024_20250922.csv",
+    parse_dates=["Timestamp"]
+)
+
+# --- 2b. Aggregate speeds by Next Timepoint Stop Name and Direction ---
+agg_speeds = (
+    speeds.groupby(["Route ID","Next Timepoint Stop Name", "Direction"], as_index=False)
+    .agg(
+        avg_speed=("Average Road Speed", "mean"),
+        total_trips=("Bus Trip Count", "sum"),
+        start_lat=("Timepoint Stop Latitude", "first"),
+        start_lon=("Timepoint Stop Longitude", "first"),
+        end_lat=("Next Timepoint Stop Latitude", "first"),
+        end_lon=("Next Timepoint Stop Longitude", "first"),
+        route_id=("Route ID", "first")
+    )
+)
+
+# --- 2c. Map directions and add segment numbers ---
+dir_map = {'W': 0, 'E': 1, 'N': 0, 'S': 1}  # adjust if needed
+agg_speeds['direction_id'] = agg_speeds['Direction'].map(dir_map)
+
+agg_speeds = agg_speeds.sort_values(["route_id", "direction_id"])
+agg_speeds["segment_number"] = (
+    agg_speeds.groupby(["route_id", "direction_id"]).cumcount() + 1
+)
+
+# --- 3. Helper functions ---
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371e3
+    phi1, phi2 = radians(lat1), radians(lat2)
+    dphi, dlambda = radians(lat2 - lat1), radians(lon2 - lon1)
+    a = sin(dphi/2)**2 + cos(phi1) * cos(phi2) * sin(dlambda/2)**2
+    return 2 * R * atan2(sqrt(a), sqrt(1 - a))
+
+def closest_index(lat, lon, coords):
+    return min(range(len(coords)), key=lambda i: haversine(lat, lon, coords[i][1], coords[i][0]))
+
+# --- 4. Map route+direction to BEST shape_id (longest shape) ---
+# Get all shape_ids per route/direction
+direction_map = trips.groupby(['route_id', 'direction_id'])['shape_id'].unique().to_dict()
+
+best_shape_map = {}
+for key, shape_ids in direction_map.items():
+    # pick the shape_id with the most points
+    shape_counts = shapes[shapes["shape_id"].isin(shape_ids)].groupby("shape_id").size()
+    best_shape_id = shape_counts.idxmax()
+    best_shape_map[key] = best_shape_id
+
+# --- 5. Build GeoJSON ---
+features = []
+
+for _, row in agg_speeds.iterrows():
+    route_dir_key = (row["route_id"], row["direction_id"])
+    if route_dir_key not in best_shape_map:
+        continue
+
+    shape_id = best_shape_map[route_dir_key]
+    route_shape = shapes[shapes["shape_id"] == shape_id]
+    shape_coords = list(zip(route_shape["shape_pt_lon"], route_shape["shape_pt_lat"]))
+
+    # Find indices along shape for stop and next stop
+    i1 = closest_index(row["start_lat"], row["start_lon"], shape_coords)
+    i2 = closest_index(row["end_lat"], row["end_lon"], shape_coords)
+    if i1 > i2:
+        i1, i2 = i2, i1
+
+    # Fallback if points are the same
+    if i1 == i2:
+        segment_coords = [(row["start_lon"], row["start_lat"]), (row["end_lon"], row["end_lat"])]
+    else:
+        segment_coords = shape_coords[i1:i2+1]
+
+    features.append({
+        "type": "Feature",
+        "geometry": {"type": "LineString", "coordinates": segment_coords},
+        "properties": {
+            "route_id": row["route_id"],
+            "direction": row["Direction"],
+            "segment_number": int(row["segment_number"]),
+            "speed": row["avg_speed"],
+            "trips": row["total_trips"]
+        }
+    })
+
+geojson = {"type": "FeatureCollection", "features": features}
+
+with open("/Users/danielbrown/Desktop/bx19_speeds_shapes_directions_agg_2.geojson", "w") as f:
+    json.dump(geojson, f)
+
+print(f"GeoJSON created with {len(features)} features")
+
+# Ensure CRS is set (assuming WGS84, EPSG:4326)
+import geopandas as gpd
+
+segments_gdf = gpd.read_file(
+    "/Users/danielbrown/Desktop/bx19_speeds_shapes_directions_agg_2.geojson"
+).set_crs(epsg=4326)
+
+#print(geojson)
+
+
+'''
+Combines the violations dataset with segment speed dataset. 
+This enables use to see which WHERE and WHICH DIRECTION the bus was travelling 
+when the violation occured.
+'''
+
+# Ensure route_id columns align
+violations_gdf = violations_gdf.rename(columns={"Bus Route ID": "route_id"})
+
+# Only join violations to segments from the same route
+joined = gpd.sjoin_nearest(
+    violations_gdf,
+    segments_gdf,
+    how="left",
+    max_distance=50,   # tolerance in meters, adjust if needed
+    distance_col="dist_meters"
+)
+
+# Filter so that routes actually match
+joined = joined[joined["route_id_left"] == joined["route_id_right"]]
+
+'''
+print(joined[[
+    "Violation ID", "route_id_left", "Stop Name", 
+    "segment_number", "direction", "speed", "dist_meters"
+]].head())
+'''
+
+# Extract longitude and latitude from Point geometry
+joined["longitude"] = joined.geometry.x
+joined["latitude"] = joined.geometry.y
+
+print(joined)
+
+# Optional: export to CSV
+output_fp = '/Users/danielbrown/Desktop/violation_speed_segment.csv'
+joined.to_csv(output_fp, index=False)
+print(f"Saved merged CSV to {output_fp}")
+
+
+This script processes two transit datasets—violations and bus segment speeds—and links them together. It first converts violation records into a GeoJSON of point locations, then builds a GeoJSON of bus route segments with average speed and trip data from GTFS and speed files. Finally, it performs a spatial join so each violation is matched to the nearest segment on the same route, adding segment number, direction, and speed context. The result is a merged CSV that shows where and on which route segment a violation occurred.
+
+Does this give more detail to your story?
+
+Understanding a bus route isn’t just about the bus—it’s about the journey. 
+
+Who’s transferring? Where are they going next? Which subway stops intersect the route?
+
+For the BX12+ bus, I explored this: roughly 36% of passengers transfer, and there are key subway connections along the way (A, 1, 4, D/B, 2, 5, 6 lines). I also mapped the top 50 destinations from Fordham Rd (4) to see where riders continue their trips.
+
+Are you interested in how I came up with the 36% metric? I used the MTA Bus Hourly Ridership dataset.
+
+All of this comes from the datasets I shared in my earlier Google Sheet.
+I’m curious—would you use this type of data in your own datathon story?
+
+Allen Hillery - Maryam Ilyas - MHC++ - Metropolitan Transportation Authority
+
+No alternative text description for this image
+
+No alternative text description for this image
+
+No alternative text description for this image
+
+No alternative text description for this image
+Activate to view larger image,
+like
+1
+
+Like
+
+Comment
+
+Repost
+
+Send
+Feed post number 2
+View Daniel Brown’s  graphic link
+Daniel BrownDaniel Brown
+   • 1stVerified • 1st
+Data Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving StrategistData Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving Strategist
+6h • Edited •  6 hours ago • Edited • Visible to anyone on or off LinkedIn
+
+As you’re building your ACE bus projects, here’s another tool you can use to strengthen your story:
+I mapped the percentage of people who commute 45+ minutes (from Bureau of Transportation Statistics data) and joined it with census tract shape data. 
+Red = Higher % of commuters with 45+ minute commute
+Blue = Lower % of commuters with 45+ minute commute
+
+This shows the overall commute burden riders in those neighborhoods face.
+
+I mapped it this way, but you can imagine and implement it in any way that fits your story. The goal is to add context to your bus data, helping your visualization communicate the bigger picture of mobility and daily impacts across communities.
+
+The datasets can be found on the google sheet I shared!
+
+Below is some code to get started:
+https://lnkd.in/eVRDeXej
+
+import pandas as pd
+import os
+
+# Path to data folder relative to the notebook
+DATA_DIR = os.path.join("..", "data", "raw")
+travel_time_df = pd.read_csv(os.path.join(DATA_DIR, "NTAD_Travel_Time _Work.csv"))
+census_tracts_df = pd.read_csv(os.path.join(DATA_DIR, "2020_Census_Tracts_20250921.csv"))
+
+
+# Quick check of column names
+#print("Travel Time Columns:", travel_time_df.columns.tolist())
+#print("Census Tracts Columns:", census_tracts_df.columns.tolist())
+
+# Show quick preview + shape
+#print(travel_time_df.head())
+#print(f"Merged DataFrame shape: {travel_time_df.shape}")
+
+#print(census_tracts_df.head())
+print(f"Merged DataFrame shape: {census_tracts_df.shape}")
+
+travel_time_df['% of workers with 45+ minutes commute'] = travel_time_df['% of workers with commute of 45 to 59 minutes'] + travel_time_df['% of workers with commute of 60 to 89 minutes'] + travel_time_df['% of workers with commute of 90 or more minutes']
+
+# Left join: keep all census tracts (CTLabel), bring in matching travel times (TRACTID)
+merged_df = census_tracts_df.merge(
+    travel_time_df,
+    how="left",
+    left_on="CTLabel",
+    right_on="TRACTID"
+)
+
+# Reset index for cleanliness
+merged_df = merged_df.reset_index(drop=True)
+
+merged_df = merged_df[['NTAName','CTLabel','% of workers with 45+ minutes commute','the_geom']]
+
+# Show quick preview + shape
+print(merged_df.head())
+print(f"Merged DataFrame shape: {merged_df.shape}")
+
+
+# Get the absolute path to the project root
+project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
+
+# Construct the full path to the output file
+output_path = os.path.join(project_root, "data", "processed", "census_merged_df.csv")
+
+# Save the CSV
+merged_df.to_csv(output_path, index=False)
+
+
+Allen Hillery - Maryam Ilyas - MHC++ - Bureau of Transportation Statistics (BTS)
+Activate to view larger image,
+map
+Activate to view larger image,
+likesupport
+4
+Allen Hillery and 3 others
+1 repost
+
+Like
+
+Comment
+
+Repost
+
+Send
+Feed post number 3
+View Daniel Brown’s  graphic link
+Daniel BrownDaniel Brown
+   • 1stVerified • 1st
+Data Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving StrategistData Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving Strategist
+20h •  20 hours ago • Visible to anyone on or off LinkedIn
+
+Datathon students and NYC transit enthusiasts!
+
+Need a way to sample large MTA datasets for analysis? These two Python scripts provide a solid structure:
+- Sample full days or random rows from the MTA violations, segment speed, or hourly ridership datasets.
+- Ideal for sampling large datasets.
+
+The code can be adapted to your specific questions, it’s a great foundation to explore and analyze NYC transit data efficiently.
+
+You will need an API key from NYC OPEN DATA
+
+Sample full days - https://lnkd.in/eGjQPknv
+
+#Samples Random Full Days from API
+'''
+Purpose
+This script retrieves random full-day snapshots of MTA fare evasion or ridership data 
+from the NYC Open Data API and saves them to a CSV. It’s useful for sampling, exploratory 
+analysis, or building datathon projects without downloading the full dataset.
+'''
+
+import requests
+import random
+import logging
+from datetime import datetime, timedelta
+import time
+import csv
+
+# 🔧 Config
+API_KEY_ID = ""
+API_KEY_SECRET = ""
+BASE_URL = "https://data.ny.gov/resource/wujg-7c2s.json"
+NUM_SAMPLES = 20
+START_DATE = datetime(2021, 3, 1)
+END_DATE = datetime.today()
+#OUTPUT_FILE = "/Users/danielbrown/Desktop/Portfolio_Projects/fare_evasion/data/raw/mta_random_days_20.csv"
+
+# 🪵 Logging setup
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+def get_random_date():
+    total_days = (END_DATE - START_DATE).days
+    random_day = random.randint(0, total_days)
+    return (START_DATE + timedelta(days=random_day)).strftime("%Y-%m-%d")
+
+def fetch_data_for_date(date_str, max_retries=3, retry_delay=2):
+    logging.info(f"📅 Fetching all records for {date_str}...")
+    all_records = []
+    offset = 0
+    limit = 1000
+    done = False
+
+    next_date = (datetime.strptime(date_str, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
+    where_clause = f"transit_timestamp >= '{date_str}T00:00:00' AND transit_timestamp < '{next_date}T00:00:00'"
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            while not done:
+                url = (
+                    f"{BASE_URL}?$where={where_clause}"
+                    f"&$limit={limit}&$offset={offset}"
+                )
+                response = requests.get(url, auth=(API_KEY_ID, API_KEY_SECRET))
+                if response.status_code == 200:
+                    batch = response.json()
+                    logging.info(f"📦 Retrieved {len(batch)} records at offset {offset}")
+                    all_records.extend(batch)
+
+                    if len(batch) < limit:
+                        done = True
+                    else:
+                        offset += limit
+                else:
+                    logging.warning(f"⚠️ API error {response.status_code}: {response.text}")
+                    break
+
+                time.sleep(0.25)  # politeness delay
+
+            if len(all_records) == 0:
+                logging.warning(f"🕒 Attempt {attempt}: Received 0 records for {date_str}. Retrying after {retry_delay} seconds...")
+                time.sleep(retry_delay)
+                offset = 0
+                done = False
+                retry_delay *= 2
+            else:
+                break
+        except Exception as e:
+            logging.error(f"❌ Exception on attempt {attempt} for {date_str}: {e}")
+            time.sleep(retry_delay)
+            retry_delay *= 2
+
+    if len(all_records) == 0:
+        logging.error(f"🚫 No data retrieved for {date_str} after {max_retries} attempts.")
+
+    logging.info(f"✅ Finished fetching {len(all_records)} records for {date_str}")
+    return all_records
+
+def write_to_csv(data_list, output_file):
+    if not data_list:
+        logging.warning("⚠️ No data to write.")
+        return
+
+    fieldnames = sorted(set().union(*(d.keys() for d in data_list)))
+
+    try:
+        with open(output_file, mode="w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(data_list)
+        logging.info(f"📄 Successfully wrote {len(data_list)} rows to '{output_file}'")
+    except Exception as e:
+        logging.error(f"❌ Failed to write CSV: {e}")
+
+def sample_and_fetch_random_days(n):
+    logging.info("🚀 Starting random full-day sampling from MTA ridership dataset...")
+
+    successful_dates = set()
+    tried_dates = set()
+    all_data = []
+
+    while len(successful_dates) < n:
+        date = get_random_date()
+        if date in tried_dates:
+            continue
+
+        tried_dates.add(date)
+        day_data = fetch_data_for_date(date)
+        if day_data:
+            all_data.extend(day_data)
+            successful_dates.add(date)
+        else:
+            logging.info(f"🔁 Will sample another day to replace failed date: {date}")
+
+        time.sleep(0.3)
+
+    logging.info(f"🏁 Successfully retrieved data for {len(successful_dates)} unique days: {sorted(successful_dates)}")
+    write_to_csv(all_data, OUTPUT_FILE)
+
+if __name__ == "__main__":
+    sample_and_fetch_random_days(NUM_SAMPLES)
+
+Sample random rows -https://lnkd.in/eKppsxyy
+
+#Samples Random rows from API
+'''
+Purpose
+This script retrieves a specific number of random individual rows from the NYC MTA 
+dataset via the NYC Open Data API and saves them to a CSV. Unlike full-day sampling, 
+this is useful for lightweight exploratory analysis, testing, or building datathon 
+examples without fetching entire days of data.
+'''
+
+import requests
+import random
+import logging
+import time
+import csv
+
+# 🔧 Config
+API_KEY_ID = ""
+API_KEY_SECRET = ""
+BASE_URL = "https://data.ny.gov/resource/wujg-7c2s.json"
+COUNT_URL = "https://data.ny.gov/resource/wujg-7c2s.json?$select=count(*)"
+NUM_SAMPLES = 20
+OUTPUT_FILE = "mta_random_rows.csv"
+
+# 🪵 Logging setup
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+def get_total_rows():
+    """Fetch total row count from API."""
+    logging.info("📊 Fetching total row count...")
+    response = requests.get(COUNT_URL, auth=(API_KEY_ID, API_KEY_SECRET))
+    response.raise_for_status()
+    count = int(response.json()[0]["count"])
+    logging.info(f"✅ Total rows available: {count}")
+    return count
+
+def fetch_row_at_offset(offset, max_retries=3, retry_delay=2):
+    """Fetch a single row at a given offset."""
+    url = f"{BASE_URL}?$limit=1&$offset={offset}"
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = requests.get(url, auth=(API_KEY_ID, API_KEY_SECRET))
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    return data[0]
+            else:
+                logging.warning(f"⚠️ API error {response.status_code}: {response.text}")
+        except Exception as e:
+            logging.error(f"❌ Exception on attempt {attempt}: {e}")
+        time.sleep(retry_delay)
+    return None
+
+def write_to_csv(data_list, output_file):
+    if not data_list:
+        logging.warning("⚠️ No data to write.")
+        return
+    fieldnames = sorted(set().union(*(d.keys() for d in data_list)))
+    try:
+        with open(output_file, mode="w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(data_list)
+        logging.info(f"📄 Successfully wrote {len(data_list)} rows to '{output_file}'")
+    except Exception as e:
+        logging.error(f"❌ Failed to write CSV: {e}")
+
+def sample_random_rows(n):
+    total_rows = get_total_rows()
+    logging.info(f"🚀 Sampling {n} random rows from {total_rows} available rows...")
+
+    sampled_data = []
+    offsets = random.sample(range(total_rows), n)
+
+    for i, offset in enumerate(offsets, start=1):
+        row = fetch_row_at_offset(offset)
+        if row:
+            sampled_data.append(row)
+            logging.info(f"✅ Retrieved random row {i}/{n} (offset={offset})")
+        else:
+            logging.warning(f"⚠️ Failed to retrieve row at offset {offset}")
+
+        time.sleep(0.2)  # politeness delay
+
+    write_to_csv(sampled_data, OUTPUT_FILE)
+
+if __name__ == "__main__":
+    sample_random_rows(NUM_SAMPLES)
+
+GitHub Gist: instantly share code, notes, and snippets.
+gist:580b9ac435f4f7d97bc0f669bd2cc711
+gist.github.com
+
+likelove
+3
+Allen Hillery and 2 others
+1 comment
+
+Like
+
+Comment
+
+Repost
+
+Send
+Feed post number 4
+View Daniel Brown’s  graphic link
+Daniel BrownDaniel Brown
+   • 1stVerified • 1st
+Data Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving StrategistData Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving Strategist
+21h •  21 hours ago • Visible to anyone on or off LinkedIn
+
+Every bus route tells two stories: the one on the road—and the one in the neighborhoods it serves. Datathon participants, you’ll dig deeper if you ask: Who lives along your route? Who uses it?
+
+On Keeping Track Online – The Status of New York City Children you can access community-level data on median incomes, poverty, child population, child care voucher use, and many other indicators of child & family well-being across NYC neighborhoods.
+
+Using the datasets and code below, you can explore the communities around any bus route in NYC and get a better sense of who lives there, helping you tell a more contextual and in-depth story.
+
+Datasets I used:
+- Keeping Track Online - THE STATUS OF NEW YORK CITY CHILDREN - https://lnkd.in/ekj3bhKU
+data/Median_Incomes.csv
+- 2020 Community District Tabulation Areas (CDTAs)- https://lnkd.in/ey3ByYPx
+data/2020_Community_District_Tabulation_Areas__CDTAs__20250921
+
+With these, you can visualize median income of the communities around your bus lanes and enrich your transit stories.
+
+The code below shows how to join the datasets and prepare them for visualization in Kepler.gl, letting you map income levels, neighborhoods, and bus routes together.
+
+Code snippet - https://lnkd.in/enPvGyZa
+import pandas as pd
+
+# File paths
+median_income_fp = '/Users/danielbrown/Desktop/Median_Incomes - Sheet1.csv'
+cdta_fp = '/Users/danielbrown/Desktop/2020_Community_District_Tabulation_Areas__CDTAs__20250920.csv'
+
+# Load CSVs
+median_income_df = pd.read_csv(median_income_fp)
+cdta_df = pd.read_csv(cdta_fp)
+
+# Quick check
+# Check columns
+print("Median Income Columns:\n", median_income_df.columns, "\n")
+print("CDTA Columns:\n", cdta_df.columns, "\n")
+
+# Get the size of the dataframe
+rows, cols = cdta_df.shape
+print(f"Merged DataFrame size: {rows} rows x {cols} columns")
+
+# Step 1: Extract the code in parentheses
+median_income_df['Code'] = median_income_df['Location'].str.extract(r'\((.*?)\)')
+
+# Step 2: Replace letters only (prefix replacements)
+letter_map = {
+    "K": "BK",
+    "S": "SI",
+    "Q": "QN",
+    "B": "BX",
+    "M": "MN"
+}
+
+# Function to replace letters while keeping numbers
+def replace_prefix(code):
+    if pd.isna(code):
+        return code
+    for old, new in letter_map.items():
+        if code.startswith(old):
+            return new + code[len(old):]
+    return code  # leave as-is if no match
+
+median_income_df['Code'] = median_income_df['Code'].apply(replace_prefix)
+
+# Optional: check first few rows
+print(median_income_df.head())
+
+# Get the size of the dataframe
+rows, cols = median_income_df.shape
+print(f"Merged DataFrame size: {rows} rows x {cols} columns")
+
+# Step 3: Export to CSV
+#output_fp = '/Users/danielbrown/Desktop/median_income_with_codes.csv'
+#median_income_df.to_csv(output_fp, index=False)
+#print(f"Saved updated CSV to {output_fp}")
+#print("Median Income Columns:\n", median_income_df.columns, "\n")
+
+# Inner join on Code -> CDTA2020
+merged_df = median_income_df.merge(
+    cdta_df,
+    left_on='Code',
+    right_on='CDTA2020',
+    how='left'
+)
+
+# Sort the DataFrame by 'Code'
+merged_df = merged_df.sort_values(by='Code').reset_index(drop=True)
+
+merged_df = merged_df[['Location','All Households','Families','Families with Children','Families without Children','Code','the_geom']]
+
+# Step 1: Strip $ and commas from income columns and convert to numeric
+income_cols = ['All Households', 'Families', 'Families with Children', 'Families without Children']
+for col in income_cols:
+    merged_df[col] = merged_df[col].replace('[\$,]', '', regex=True).astype(float)
+
+# Step 2: Ensure string columns
+string_cols = ['Location', 'Code', 'the_geom']
+for col in string_cols:
+    merged_df[col] = merged_df[col].astype(str)
+
+# Quick check
+print(merged_df.head())
+print(merged_df.columns)
+# Get the size of the dataframe
+rows, cols = merged_df.shape
+print(f"Merged DataFrame size: {rows} rows x {cols} columns")
+
+# Optional: export to CSV
+output_fp = '/Users/danielbrown/Desktop/median_income_cdta_merged.csv'
+merged_df.to_csv(output_fp, index=False)
+print(f"Saved merged CSV to {output_fp}")
+
+Start layering your maps to gain insights and convey your story convincingly.
+In the second picture, you’ll see bus lanes and routes in the Bronx layered with the median incomes of surrounding communities.
+
+Allen Hillery - Maryam Ilyas - MHC++ - Citizens'​ Committee for Children of New York - Citizens Committee for New York City
+
+No alternative text description for this image
+
+No alternative text description for this image
+Activate to view larger image,
+likecelebratesupport
+10
+Daniel Furmanov and 9 others
+1 repost
+
+Like
+
+Comment
+
+Repost
+
+Send
+Feed post number 5
+View Daniel Brown’s  graphic link
+Daniel BrownDaniel Brown
+   • 1stVerified • 1st
+Data Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving StrategistData Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving Strategist
+1d •  1 day ago • Visible to anyone on or off LinkedIn
+
+Visualizing MTA Bus Route Segment Speeds
+
+Use the code below to create your own geospatial visualizations for your bus routes segment speeds!
+
+I recently combined the MTA Bus Route Segment Speeds dataset with the MTA General Transit Feed Specification (GTFS) Static Data to create detailed visualizations of bus speeds across route segments in NYC.
+
+The tricky part was getting the data into the right format. Geospatial data is tricky to work with, and aligning stops with shapes took some careful preparation.
+
+To prep the data, I wrote this Python workflow:
+Bus Segment Speeds Data Prep - https://lnkd.in/eRcVP7s3
+
+import pandas as pd
+import json
+from math import radians, sin, cos, sqrt, atan2
+
+# --- 1. Load GTFS shapes and trips ---
+shapes = pd.read_csv("/Users/danielbrown/Desktop/gtfs_bx-3/shapes.txt")
+shapes = shapes.sort_values(["shape_id", "shape_pt_sequence"])
+
+trips = pd.read_csv("/Users/danielbrown/Desktop/gtfs_bx-3/trips.txt")
+
+# --- 2. Load speeds ---
+speeds = pd.read_csv(
+    "/Users/danielbrown/Desktop/MTA_Bus_Route_Segment_Speeds__Beginning_2025_20250920.csv",
+    parse_dates=["Timestamp"]
+)
+
+# --- 2b. Aggregate speeds by Next Timepoint Stop Name and Direction ---
+agg_speeds = (
+    speeds.groupby(["Next Timepoint Stop Name", "Direction"], as_index=False)
+    .agg(
+        avg_speed=("Average Road Speed", "mean"),
+        total_trips=("Bus Trip Count", "sum"),
+        start_lat=("Timepoint Stop Latitude", "first"),
+        start_lon=("Timepoint Stop Longitude", "first"),
+        end_lat=("Next Timepoint Stop Latitude", "first"),
+        end_lon=("Next Timepoint Stop Longitude", "first"),
+        route_id=("Route ID", "first")
+    )
+)
+
+# --- 2c. Map directions and add segment numbers ---
+dir_map = {'W': 0, 'E': 1}  # adjust if needed
+agg_speeds['direction_id'] = agg_speeds['Direction'].map(dir_map)
+
+# Number segments within each route + direction
+agg_speeds = agg_speeds.sort_values(["route_id", "direction_id"])
+agg_speeds["segment_number"] = (
+    agg_speeds.groupby(["route_id", "direction_id"]).cumcount() + 1
+)
+
+# --- 3. Helper functions ---
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371e3
+    phi1, phi2 = radians(lat1), radians(lat2)
+    dphi, dlambda = radians(lat2 - lat1), radians(lon2 - lon1)
+    a = sin(dphi/2)**2 + cos(phi1) * cos(phi2) * sin(dlambda/2)**2
+    return 2 * R * atan2(sqrt(a), sqrt(1 - a))
+
+def closest_index(lat, lon, coords):
+    return min(range(len(coords)), key=lambda i: haversine(lat, lon, coords[i][1], coords[i][0]))
+
+# --- 4. Map route+direction to shape_id ---
+direction_map = trips.groupby(['route_id', 'direction_id'])['shape_id'].first().to_dict()
+
+# --- 5. Build GeoJSON ---
+features = []
+
+for _, row in agg_speeds.iterrows():
+    route_dir_key = (row["route_id"], row["direction_id"])
+    if route_dir_key not in direction_map:
+        continue
+    shape_id = direction_map[route_dir_key]
+    route_shape = shapes[shapes["shape_id"] == shape_id]
+    shape_coords = list(zip(route_shape["shape_pt_lon"], route_shape["shape_pt_lat"]))
+
+    # Find indices along shape for stop and next stop
+    i1 = closest_index(row["start_lat"], row["start_lon"], shape_coords)
+    i2 = closest_index(row["end_lat"], row["end_lon"], shape_coords)
+    if i1 > i2:
+        i1, i2 = i2, i1
+
+    # Fallback if points are the same
+    if i1 == i2:
+        segment_coords = [(row["start_lon"], row["start_lat"]), (row["end_lon"], row["end_lat"])]
+    else:
+        segment_coords = shape_coords[i1:i2+1]
+
+    features.append({
+        "type": "Feature",
+        "geometry": {"type": "LineString", "coordinates": segment_coords},
+        "properties": {
+            "route_id": row["route_id"],
+            "direction": row["Direction"],
+            "segment_number": int(row["segment_number"]),
+            "speed": row["avg_speed"],
+            "trips": row["total_trips"]
+        }
+    })
+
+geojson = {"type": "FeatureCollection", "features": features}
+
+with open("/Users/danielbrown/Desktop/bx12_speeds_shapes_directions_agg_1.geojson", "w") as f:
+    json.dump(geojson, f)
+
+print(f"GeoJSON created with {len(features)} features")
+
+
+For visualization, I explored two approaches:
+- No-code method via Kepler.gl – great for quickly exploring patterns.
+- Custom visualizations using Deck.gl – for more control and interactivity:
+Deck.gl Visualizations - https://lnkd.in/eSSz2JgW
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BX Bus Routes Speed Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://unpkg.com/deck.gl@9.0.0/dist.min.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOURGOOGLEKEY"></script>
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { width: 100%; height: 100vh; }
+    #legend {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 200px;
+      height: 20px;
+      border-radius: 4px;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      font-family: sans-serif;
+      font-size: 12px;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+<div id="legend"></div>
+
+<script>
+// Init Google Map
+const map = new google.maps.Map(document.getElementById("map"), {
+  center: { lat: 40.85, lng: -73.9 },
+  zoom: 12,
+  styles: [
+    { elementType: "geometry", stylers: [{ color: "#212121" }] },
+    { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+    { elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+    { elementType: "labels.text.stroke", stylers: [{ color: "#212121" }] },
+    { featureType: "road", elementType: "geometry", stylers: [{ color: "#383838" }] },
+    { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] }
+  ]
+});
+
+// Load your segment speed GeoJSON
+fetch("data/raw/bx12_speeds_shapes_directions_agg_1.geojson")
+  .then(r => r.json())
+  .then(data => {
+
+    // Compute min/max speed for color gradient
+    const speeds = data.features.map(f => f.properties.speed);
+    const minSpeed = Math.min(...speeds);
+    const maxSpeed = Math.max(...speeds);
+    const midSpeed = (minSpeed + maxSpeed)/2;
+
+    // Show legend
+    const legend = document.getElementById("legend");
+    legend.innerHTML = `<span>${minSpeed.toFixed(1)}</span><span>${midSpeed.toFixed(1)}</span><span>${maxSpeed.toFixed(1)}</span>`;
+
+    // Color function (red=slow, yellow=medium, green=fast)
+    function getColor(speed) {
+      const t = (speed - minSpeed) / (maxSpeed - minSpeed);
+      let r, g, b = 0;
+      if(t < 0.5) { r = 255; g = Math.floor(255*t*2); }
+      else { r = Math.floor(255*(1-(t-0.5)*2)); g = 255; }
+      return [r, g, b, 200];
+    }
+
+    const overlay = new deck.GoogleMapsOverlay({
+      layers: [
+        new deck.GeoJsonLayer({
+          id: "bx-speed",
+          data: data,
+          stroked: true,
+          filled: false,
+          getLineColor: f => getColor(f.properties.speed),
+          lineWidthMinPixels: 4,
+          pickable: true,
+          getTooltip: ({object}) => object ?
+            `Route: ${object.properties.route_id}\nSegment: ${object.properties.segment_number}\nSpeed: ${object.properties.speed.toFixed(1)} mph\nTrips: ${object.properties.trips}` : null
+        })
+      ]
+    });
+
+    overlay.setMap(map);
+  })
+  .catch(console.error);
+
+</script>
+</body>
+</html>
+
+
+Both datasets are available in the Google Sheet I shared, so anyone can try it out.
+
+This project was a great reminder of the power and complexity of geospatial data in transit analysis.
+
+hashtag#DataVisualization hashtag#PublicTransit hashtag#Geospatial hashtag#Python hashtag#DeckGL hashtag#KeplerGL hashtag#MTA hashtag#NYC
+
+Allen Hillery - Maryam Ilyas - MHC++
+
+No alternative text description for this image
+
+No alternative text description for this image
+Activate to view larger image,
+likelove
+7
+Maryam Ilyas and 6 others
+1 repost
+
+Like
+
+Comment
+
+Repost
+
+Send
+Feed post number 6
+View Daniel Brown’s  graphic link
+Daniel BrownDaniel Brown
+   • 1stVerified • 1st
+Data Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving StrategistData Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving Strategist
+1d • Edited •  1 day ago • Edited • Visible to anyone on or off LinkedIn
+
+Check out this collection of NYC transit datasets, from bus ridership and speeds to wait times and enforcement. 
+
+Useful Datathon Datasets - https://lnkd.in/eE-y-Q9z
+
+
+By combining this with Keeping Track Online (children’s wellbeing metrics), we can see which neighborhoods and populations rely most on specific bus routes—insightful for planning and equity.
+
+Overview of the Datasets
+Bus Operations & Enforcement
+- Automated Camera Enforcement Violations & Enforced Routes: Records of bus lane violations and the specific routes where cameras are active.
+- Potential Analysis: Identify hotspots for violations, evaluate effectiveness of bus lanes, or assess compliance over time.
+
+Bus Ridership
+- Hourly Ridership (pre-2025 and 2025 onward): Millions of records tracking passengers by bus route, time, and date.
+- Potential Analysis: Study usage patterns, peak hours, route popularity, or impacts of policy changes like congestion pricing.
+
+Subway Ridership
+- Origin-Destination Estimates: Shows flow between subway stations.
+- Potential Analysis: Bus to Subway transfers on bus routes, identify multimodal transit patterns, or assess transit demand in specific areas.
+
+Bus Performance
+- Wait Assessment & Route Segment Speeds: Measures bus wait times at stops and segment travel speeds.
+- Potential Analysis: Detect delays, bottlenecks, and route inefficiencies; measure effects of traffic policies or construction.
+
+Customer Experience
+- Customer Journey-Focused Metrics: Small datasets tracking rider satisfaction and experience metrics.
+- Potential Analysis: Understand rider sentiment, service quality, and operational improvements.
+
+Infrastructure & Geography
+- Bus Lanes (local and citywide): Locations of dedicated lanes.
+- GTFS Static Data: Official schedule and route data.
+- Census & Community Geography (CDTAs, NTAs, Census Tracts): Provides spatial context for analyzing service coverage.
+- Potential Analysis: Map bus service coverage, evaluate equity of bus service across neighborhoods, or overlay traffic enforcement with lane data.
+
+Other Data
+- Keeping Track Online: NYC children’s wellbeing metrics — may provide socio-demographic context for transit planning or equity studies.
+
+Allen Hillery - Maryam Ilyas - MHC++
+
+Datathon - Presentation
+docs.google.com
+likelove
+7
+Maryam Ilyas and 6 others
+1 comment
+
+Like
+
+Comment
+
+Repost
+
+Send
+Feed post number 7
+View Daniel Brown’s  graphic link
+Daniel BrownDaniel Brown
+   • 1stVerified • 1st
+Data Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving StrategistData Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving Strategist
+1d •  1 day ago • Visible to anyone on or off LinkedIn
+
+Fall 2025 MHC++ x MTA Datathon
+
+Are you trying to visualize your ACE violations dataset?
+
+No Code Solution - Simply get your data from NYC OPEN DATA on ACE Violations in csv format, go to the Kepler.gl website, add your data, and change the shape to hex bins. This gives you violation density! 
+
+Code Solution - Below are two GitHub gists for manipulating the NYC OPEN DATA on ACE Violations and using it in Deck.gl which is a javascript library. This is another way to get violation density. This method gives you a lot of control on how you want to present your visualization. Google Maps API Key is needed (you can get one for free)
+
+Data Manipulation script - https://lnkd.in/erFUdz4W
+#Import Libraries
+import pandas as pd
+import os
+
+# Path to data folder relative to the notebook
+DATA_DIR = os.path.join("..", "data", "raw")
+ace_violations = pd.read_csv(os.path.join(DATA_DIR, "ACE_violations.csv"))
+#ace_violations.head()
+
+import json
+import math
+
+features = []
+
+for _, row in ace_violations.iterrows():
+    try:
+        v_lat, v_lon = row["Violation Latitude"], row["Violation Longitude"]
+
+        # Skip rows with bad coords
+        if (
+            pd.isna(v_lat) or pd.isna(v_lon) or
+            not (math.isfinite(v_lat) and math.isfinite(v_lon))
+        ):
+            continue
+
+        # Properties (convert everything to string to avoid JSON issues)
+        props = {col: str(row[col]) for col in [
+            "Violation ID",
+            "Vehicle ID",
+            "First Occurrence",
+            "Last Occurrence",
+            "Violation Status",
+            "Violation Type",
+            "Bus Route ID",
+            "Stop ID",
+            "Stop Name"
+        ] if col in row}
+
+        feature = {
+            "type": "Feature",
+            "properties": props,
+            "geometry": {
+                "type": "Point",
+                "coordinates": [float(v_lon), float(v_lat)]
+            }
+        }
+        features.append(feature)
+    except Exception as e:
+        print(f"Skipping row due to error: {e}")
+
+geojson = {
+    "type": "FeatureCollection",
+    "features": features
+}
+
+with open("/Users/danielbrown/Desktop/datathon_project/data/processed/violations.geojson", "w", encoding="utf-8") as f:
+    json.dump(geojson, f, indent=2, ensure_ascii=False)
+
+print(f"✅ Saved {len(features)} point features to violations_points.geojson")
+
+
+# Preview first 3 features
+preview = {
+    "type": "FeatureCollection",
+    "features": features[:3]
+}
+
+print(json.dumps(preview, indent=2, ensure_ascii=False))
+
+
+Deck.gl script - https://lnkd.in/e-9Ej2Wx
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Violation Density Map - Hexbins</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://unpkg.com/deck.gl@9.0.0/dist.min.js"></script>
+  <script src="https://unpkg.com/@deck.gl/google-maps@9.0.0/dist.min.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_API_KEY"></script>
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { width: 100%; height: 100vh; }
+
+    #legend {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        width: 200px;
+        height: 20px;
+        background: linear-gradient(to right, blue, cyan, lime, yellow, red);
+        border-radius: 4px;
+        display: flex;
+        justify-content: space-between;
+        padding: 0 4px;
+        color: black;
+        font-family: sans-serif;
+        font-size: 12px;
+    }
+    #legend span {
+        position: relative;
+        top: 24px;
+    }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+<div id="legend"><span>Low</span><span>High</span></div>
+
+<script>
+  // Initialize Google Map
+  const map = new google.maps.Map(document.getElementById("map"), {
+    center: { lat: 40.85, lng: -73.89 },
+    zoom: 13,
+    styles: [
+      { elementType: "geometry", stylers: [{ color: "#212121" }] },
+      { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+      { elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+      { elementType: "labels.text.stroke", stylers: [{ color: "#212121" }] },
+      { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#757575" }] },
+      { featureType: "road", elementType: "geometry", stylers: [{ color: "#383838" }] },
+      { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] }
+    ]
+  });
+
+  // Load GeoJSON
+  fetch("data/processed/violations.geojson")
+    .then(res => res.json())
+    .then(geojson => {
+      const points = geojson.features.map(f => ({
+        coordinates: f.geometry.coordinates,
+        properties: f.properties
+      }));
+
+      const hexLayer = new deck.HexagonLayer({
+        id: "violation-hexbin",
+        data: points,
+        getPosition: d => d.coordinates,
+        radius: 80,
+        elevationScale: 30,
+        extruded: true,
+        pickable: true,
+        coverage: 0.9,
+        elevationRange: [0, 1000],
+        colorRange: [
+          [0, 0, 255],
+          [0, 255, 255],
+          [0, 255, 0],
+          [255, 255, 0],
+          [255, 0, 0]
+        ],
+        getTooltip: ({object}) => object && `Violations: ${object.points.length}`
+      });
+
+      const overlay = new deck.GoogleMapsOverlay({ layers: [hexLayer] });
+      overlay.setMap(map);
+    })
+    .catch(err => console.error("Error loading GeoJSON:", err));
+</script>
+</body>
+</html>
+
+
+I figured this was an easy way to communicate the tools I am building for you. 
+
+I will continue to post tools throughout the day!
+
+What are you having trouble with?
+
+Allen Hillery - Maryam Ilyas - MHC++
+
+No alternative text description for this image
+
+No alternative text description for this image
+Activate to view larger image,
+likesupportcelebrate
+8
+Emirosman Murtazayev and 7 others
+1 repost
+
+Like
+
+Comment
+
+Repost
+
+Send
+Feed post number 8
+View Daniel Brown’s  graphic link
+Daniel BrownDaniel Brown
+   • 1stVerified • 1st
+Data Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving StrategistData Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving Strategist
+3d •  3 days ago • Visible to anyone on or off LinkedIn
+
+NYC’s buses are in crisis!
+
+Ridership has fallen by nearly half over two decades. Fare evasion has surged past 40%. And in 2025, half of New York’s buses still average under 7 mph—slower than a bicycle.
+
+This new data-driven report takes a hard look at the system’s struggles and what they mean for the city:
+- Who’s riding (and who’s paying)
+- How speeds and reliability continue to slip
+- Why structural changes, not small fixes, are needed
+
+With interactive visuals and deep analysis, this is Part One of a four-part series: Crisis by the Numbers.
+
+I also designed and built the website—drawing inspiration from the sleek aesthetic of Aesthetica Magazine—to make the data and analysis more accessible and engaging.
+
+Read the full story here: https://lnkd.in/eMHnZ3fr
+
+hashtag#NYC hashtag#PublicTransit hashtag#UrbanPlanning hashtag#DataVisualization hashtag#Transportation hashtag#Mobility hashtag#TransitEquity hashtag#Design
+
+Play
+Remaining time 
+0:56
+1x
+
+Playback speed
+
+Unmute
+
+Turn fullscreen on
+like
+1
+
+Like
+
+Comment
+
+Repost
+
+Send
+Feed post number 9
+View Daniel Brown’s  graphic link
+Daniel BrownDaniel Brown
+   • 1stVerified • 1st
+Data Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving StrategistData Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving Strategist
+4d •  4 days ago • Visible to anyone on or off LinkedIn
+
+The Macaulay Honors Datathon kicks off virtually on Friday, Sept. 19th via Zoom:
+2:00 PM – Welcome with MTA
+2:15 PM – Open Data Workshop with MTA
+3:00 PM – Workshop: Frameworks & Tools
+3:45 PM – Q&A
+
+As part of the day, I’ll be leading the Frameworks & Tools workshop — a hands-on session covering:
+- Frameworks for organizing projects, storytelling, and working with data
+- Tools for cleaning, joining, and visualizing datasets
+- Geospatial techniques for maps & analysis
+
+To give participants a preview of what’s possible with open data, I created two geospatial examples using NYC Bus Route data:
+- A Deck.gl + Google Maps visualization layering bus lanes, regular routes, and - ACE program routes
+- A Kepler.gl map, showing a minimal code, drag-and-drop approach to spatial analysis
+
+These tools make geospatial visualization easier and open up new ways to tell stories with data.
+
+I’m curious to hear from students ahead of the session:
+What tools are you planning to use?
+What questions do you have about working with geospatial data?
+
+Looking forward to Friday’s kickoff.
+
+hashtag#MTA hashtag#Bus hashtag#NYCTransit hashtag#Datathon hashtag#DataVisualization hashtag#Geospatial hashtag#DeckGL hashtag#KeplerGL hashtag#OpenData hashtag#MHC++
+
+Allen Hillery - Maryam Ilyas - MHC++ - Metropolitan Transportation Authority - Macaulay Honors College at The City University of New York
+
+Play
+Remaining time 
+0:44
+1x
+
+Playback speed
+
+Unmute
+
+Turn fullscreen on
+likelove
+3
+Maryam Ilyas and 2 others
+1 repost
+
+Like
+
+Comment
+
+Repost
+
+Send
+Feed post number 10
+View Daniel Brown’s  graphic link
+Daniel BrownDaniel Brown
+   • 1stVerified • 1st
+Data Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving StrategistData Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving Strategist
+1w •  1 week ago • Visible to anyone on or off LinkedIn
+
+On September 19th I will be leading a virtual session for the Macaulay Honors Datathon on Frameworks and Tools for data storytelling.
+
+To give participants a preview of some of the tools available, I built two examples using MTA bus speed data:
+
+- An animated Deck.gl + Google Maps visualization showing average 2025 bus speeds in the Bronx by hour of day.
+
+- A static Kepler.gl map visualizing average 2025 bus speeds in the Bronx created through drag-and-drop, a minimal code approach.
+
+Working with Geospatial Data can be tricky!
+
+I’m interested in hearing from students ahead of the session:
+What tools do you plan on using?
+What questions do you have about working with geospatial data?
+Have you ever worked with geospatial data before?
+
+Datasets used:
+MTA Bus Route Segment Speeds (Beginning 2025)
+MTA GTFS Static Data
+
+Looking forward to the 19th.
+
+hashtag#NYCTransit hashtag#Datathon hashtag#DataVisualization hashtag#MHC++ hashtag#Geospatial hashtag#DeckGL hashtag#KeplerGL hashtag#OpenData
+
+Allen Hillery - Maryam Ilyas - MHC++ - Metropolitan Transportation Authority - Macaulay Honors College at The City University of New York
+
+Play
+Remaining time 
+0:20
+1x
+
+Playback speed
+
+Unmute
+
+Turn fullscreen on
+likesupport
+16
+Maryam Ilyas and 15 others
+3 comments
+1 repost
+
+Like
+
+Comment
+
+Repost
+
+Send
+Feed post number 11
+View Daniel Brown’s  graphic link
+Daniel BrownDaniel Brown
+   • 1stVerified • 1st
+Data Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving StrategistData Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving Strategist
+1w • Edited •  1 week ago • Edited • Visible to anyone on or off LinkedIn
+
+Half of NYC Buses Now Crawl Slower Than A Jogging Speed 
+
+NYC’s bus system is in crisis:
+- Ridership is down 45% over 20 years (from 2M daily riders in 2002 to just 1.1M today)
+- 50% of routes average <7 mph — slower than most people walk
+- Journey time performance(on-time reliability of bus service) has dropped from 80% on-time in 2017 to 69% today
+
+And here’s the kicker: nearly half of riders board without paying — that’s 308 million fare evaders in 2024. What was a 20% problem has exploded into a 46.6% crisis.
+
+NYC buses serve mostly working-class riders — over 55% are immigrants, most earning under $30K. When buses fail, it’s not just inconvenience — it’s real economic hardship.
+
+Mayoral candidate Mahmdani’s fare-free bus plan could help revive ridership by removing financial barriers — but it won’t fix slow, unreliable service. The system’s performance metrics continue to lag.
+
+I’ve analyzed MTA data on ridership, fare evasion, and bus speeds — my full research article dives deep into these trends and explores whether fare-free buses are the best path forward.
+
+📖 Read it here: https://lnkd.in/eMHnZ3fr
+
+💡 Question for you: If you could fix one thing about NYC buses tomorrow, what would it be?
+
+hashtag#NYCTransit hashtag#MTABuses hashtag#FareFreeBuses hashtag#TransitEquity hashtag#PublicTransit hashtag#UrbanMobility hashtag#BusRidership hashtag#Mahmdani
+
+No alternative text description for this image
+
+No alternative text description for this image
+
+No alternative text description for this image
+Activate to view larger image,
+likeinsightful
+6
+Maryam Ilyas and 5 others
+1 repost
+
+Like
+
+Comment
+
+Repost
+
+Send
+Feed post number 12
+View Daniel Brown’s  graphic link
+Daniel BrownDaniel Brown
+   • 1stVerified • 1st
+Data Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving StrategistData Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving Strategist
+1w •  1 week ago • Visible to anyone on or off LinkedIn
+
+NYC Buses Are in Crisis — And It’s Time to Act
+
+Ridership is down 45% over two decades, half of all bus routes crawl slower than 7 mph, and journey time performance has dropped from 80% on-time in 2017 to just 69% today. The pandemic didn’t create these problems — it exposed them.
+
+Nearly half of all NYC bus riders now board without paying. That’s 308 million fare evaders in 2024 alone — turning a 20% problem into a 46.6% crisis.
+
+NYC buses serve predominantly working-class riders: over 55% are immigrants, most earning under $30K. When buses fail, it’s more than inconvenience — it’s economic hardship.
+
+Mayoral candidate Mahmdani’s fare-free bus plan could help revive ridership by removing financial barriers — but it doesn’t solve all the system’s performance issues, which continue to lag in speed, reliability, and on-time service.
+
+I’ve analyzed MTA data on ridership, fare evasion, and service performance. My magazine style research article dives deep into these trends and explores whether fare-free buses are the MTA’s best path forward.
+
+Article: https://lnkd.in/eMHnZ3fr
+
+hashtag#NYCTransit hashtag#MTABuses hashtag#PublicTransportation hashtag#UrbanMobility hashtag#FareFreeBuses hashtag#NYC hashtag#TransitPolicy hashtag#PublicTransit hashtag#Sustainability hashtag#TransportationResearch hashtag#SmartCities hashtag#NYCPolitics hashtag#Infrastructure hashtag#BusRidership hashtag#TransitEquity hashtag#Mahmdani
+Activate to view larger image,
+chart, line chart
+Activate to view larger image,
+like
+3
+Maryam Ilyas and 2 others
+
+Like
+
+Comment
+
+Repost
+
+Send
+Feed post number 13
+View Daniel Brown’s  graphic link
+Daniel BrownDaniel Brown
+   • 1stVerified • 1st
+Data Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving StrategistData Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving Strategist
+3w •  3 weeks ago • Visible to anyone on or off LinkedIn
+
+Massive Data, Simple Tools — Unlocking NYC’s Bus Story
+
+Some of NYC’s MTA bus datasets on NYC Open Data contain hundreds of millions of rows — far too big for Excel, Tableau, or a quick analysis.
+
+So I built a Python tool that makes them accessible:
+- Randomly samples full days of data
+- Fetches records directly via the API
+- Handles API limits, retries, and errors
+- Outputs clean CSVs — ready for analysis
+
+Using this, I was able to pull just enough data to build a Sankey diagram from a dataset that would otherwise feel impossible to use.
+
+Code here: https://lnkd.in/etrYVpMC
+
+This matters because massive public datasets shouldn’t be a barrier — they should be an opportunity. With the right tools, students, researchers, and enthusiasts can explore questions of performance, equity, and how to make NYC buses faster and fairer.
+
+I’ll be sharing this tool as a presenter and mentor at @MHC++ (Maryam Ilyas, Allen Hillery).
+
+Students in the datathon — if you’d like more tools like this to strengthen your data stories, reach out.
+
+The first part of my NYC bus research series drops tomorrow.
+
+hashtag#NYCTransit hashtag#MTABuses hashtag#OpenData hashtag#DataScience 
+hashtag#UrbanMobility hashtag#TransitEquity hashtag#Python hashtag#Datathon 
+hashtag#PublicTransit hashtag#DataStorytelling
+Activate to view larger image,
+chart, treemap chart
+Activate to view larger image,
+likelovecelebrate
+7
+You and 6 others
+1 comment
+1 repost
+
+love
+Love
+
+Comment
+
+Repost
+
+Send
+Feed post number 14
+View Daniel Brown’s  graphic link
+Daniel BrownDaniel Brown
+   • 1stVerified • 1st
+Data Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving StrategistData Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving Strategist
+3w •  3 weeks ago • Visible to anyone on or off LinkedIn
+
+New York City’s buses are the lifeline of the outer boroughs. But that circulation has slowed—leaving riders frustrated, underserved, and facing the nation’s slowest big-city bus network.
+
+I’m launching a new data series on New York City’s bus system—examining performance, efficiency, finances, and equity. Over the coming weeks, I’ll explore what’s broken and what reforms could make buses faster, fairer, and more reliable.
+
+Explore the project here: https://lnkd.in/eMRreUP9
+
+hashtag#NYC hashtag#NYCTransit hashtag#MTABuses hashtag#PublicTransit hashtag#PublicTransportation hashtag#UrbanMobility hashtag#TransitPolicy hashtag#TransitEquity hashtag#FareFreeBuses hashtag#BusRidership hashtag#Sustainability hashtag#TransportationResearch hashtag#SmartCities hashtag#Infrastructure hashtag#NYCPolitics hashtag#UrbanPlanning hashtag#CityPlanning hashtag#OpenData hashtag#CivicTech hashtag#SustainableCities hashtag#MobilityInnovation hashtag#Transportation hashtag#DataStorytelling hashtag#DataVisualization hashtag#DataJournalism hashtag#Analytics hashtag#TechForGood hashtag#GovTech hashtag#TransitSolutions hashtag#MTA hashtag#Mahmdani
+
+No alternative text description for this image
+
+No alternative text description for this image
+
+No alternative text description for this image
+Activate to view larger image,
+likeinsightfulsupport
+7
+Maryam Ilyas and 6 others
+4 comments
+1 repost
+
+Like
+
+Comment
+
+Repost
+
+Send
+Feed post number 15
+View Daniel Brown’s  graphic link
+Daniel BrownDaniel Brown
+   • 1stVerified • 1st
+Data Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving StrategistData Analyst | Enrolled in Master’s in Data Science Program | Proficient in Python, SQL, and Excel | Finalist at MIT Hackathon | Proven Cost-Saving Strategist
+1mo •  1 month ago • Visible to anyone on or off LinkedIn
+
+NYC Buses Are in Trouble — And It’s Time to Act
+
+Local and SBS bus ridership in New York City remains significantly below pre-pandemic levels. Back in 2020, the MTA hired McKinsey Consulting to project ridership recovery scenarios. Today, actual ridership is even below their worst-case projections.
+
+The MTA bus system is a vast, essential, and costly network that millions of New Yorkers rely on — yet it is currently underutilized. This raises a critical question: Can making NYC buses fare-free, as proposed by mayoral candidate Mahmdani, be the solution to revive ridership and save the system?
+
+I am currently researching NYC bus ridership trends, fare evasion, and future prospects, exploring whether fare-free buses are the only viable way forward for the MTA’s bus network.
+
+Stay tuned for my upcoming research article this week, where I will dive deep into these issues and possible solutions.
+
+hashtag#NYCTransit hashtag#MTABuses hashtag#PublicTransportation hashtag#UrbanMobility hashtag#FareFreeBuses hashtag#NYC hashtag#TransitPolicy hashtag#PublicTransit hashtag#Sustainability hashtag#TransportationResearch hashtag#SmartCities hashtag#NYCPolitics hashtag#Infrastructure hashtag#BusRidership hashtag#TransitEquity hashtag#Mahmdani

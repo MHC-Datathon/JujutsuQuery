@@ -1,0 +1,561 @@
+---
+/**
+ * Solution Framework Page - ClearLane Initiative
+ * Comprehensive presentation of the ClearLane solution with implementation roadmap
+ */
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/shared/Header.astro';
+import Hero from '../components/sections/Hero.astro';
+import Card from '../components/ui/Card.astro';
+import Button from '../components/ui/Button.astro';
+import DataVisualizationLayout from '../components/layout/DataVisualizationLayout.astro';
+
+const pageTitle = 'ClearLane Solution Framework - Targeted Bus Enforcement';
+const pageDescription = 'The ClearLane Initiative: A data-driven approach to bus enforcement that solves 80% of student transit problems with 20% of current resources.';
+
+const solutionPillars = [
+  {
+    title: 'Surgical Targeting',
+    description: 'Focus enforcement on the 90 locations that cause 90% of student disruptions, rather than city-wide random enforcement.',
+    icon: '🎯',
+    benefit: '5x more effective resource allocation'
+  },
+  {
+    title: 'Student Commute Priority',
+    description: 'Deploy resources during 7-10 AM weekdays when working students depend on reliable transit for academic success.',
+    icon: '📚',
+    benefit: 'Protect 8.7M student study hours annually'
+  },
+  {
+    title: 'Data-Driven Optimization',
+    description: 'Use real-time violation patterns and speed feedback to continuously improve enforcement effectiveness.',
+    icon: '📊',
+    benefit: 'Continuous improvement with measurable ROI'
+  }
+];
+
+const implementationPhases = [
+  {
+    phase: 'Phase 1',
+    title: '90-Day Pilot Program',
+    duration: '3 months',
+    locations: 'Top 10 hotspots',
+    description: 'Prove concept with focused deployment at highest-impact locations during peak student hours',
+    deliverables: [
+      'Establish enforcement presence at top 10 violation hotspots',
+      'Deploy resources during 7-10 AM on weekdays',
+      'Implement real-time data collection and monitoring',
+      'Measure speed improvements and violation reductions'
+    ],
+    success_metrics: ['20% violation reduction', '5% speed improvement', 'Positive student feedback'],
+    budget: '$500K'
+  },
+  {
+    phase: 'Phase 2',
+    title: 'CUNY Network Expansion',
+    duration: '6 months',
+    locations: 'All 90 priority locations',
+    description: 'Scale successful model to all identified hotspots serving CUNY campuses',
+    deliverables: [
+      'Deploy to all 90 ClearLane priority locations',
+      'Integrate with MTA operational systems',
+      'Launch student feedback and reporting system',
+      'Establish performance dashboard for ongoing monitoring'
+    ],
+    success_metrics: ['40% violation reduction', '12% speed improvement', '90% student satisfaction'],
+    budget: '$2.3M annually'
+  },
+  {
+    phase: 'Phase 3',
+    title: 'System-Wide Integration',
+    duration: '12 months',
+    locations: 'Citywide expansion',
+    description: 'Apply ClearLane methodology to entire NYC transit network using machine learning optimization',
+    deliverables: [
+      'Machine learning model for violation prediction',
+      'Automated resource allocation system',
+      'Integration with existing MTA enforcement workflows',
+      'Public reporting dashboard and API'
+    ],
+    success_metrics: ['System-wide efficiency gains', 'Measurable academic outcomes', 'Policy replication'],
+    budget: '$5M+ system integration'
+  }
+];
+
+const expectedOutcomes = [
+  {
+    category: 'Student Impact',
+    outcomes: [
+      { metric: '8.7M hours', description: 'Student study time protected annually' },
+      { metric: '270,000', description: 'CUNY students with improved commute reliability' },
+      { metric: '15 minutes', description: 'Average daily time savings per affected student' }
+    ]
+  },
+  {
+    category: 'Transit Performance',
+    outcomes: [
+      { metric: '40%', description: 'Reduction in violations at priority locations' },
+      { metric: '12%', description: 'Average speed improvement on targeted routes' },
+      { metric: '25%', description: 'Decrease in schedule adherence variance' }
+    ]
+  },
+  {
+    category: 'Resource Efficiency',
+    outcomes: [
+      { metric: '5:1', description: 'Return on investment ratio' },
+      { metric: '80%', description: 'Problem solved with 20% of resources' },
+      { metric: '90%', description: 'Reduction in enforcement response time' }
+    ]
+  }
+];
+
+const policyRecommendations = [
+  {
+    title: 'Immediate Actions (0-30 days)',
+    recommendations: [
+      'Authorize ClearLane pilot program for top 10 locations',
+      'Allocate existing enforcement resources to morning student commute hours',
+      'Establish baseline metrics and data collection protocols',
+      'Launch student feedback portal for commute impact reporting'
+    ],
+    icon: '🚀'
+  },
+  {
+    title: 'Short-term Implementation (30-90 days)',
+    recommendations: [
+      'Deploy enforcement teams to identified hotspot locations',
+      'Integrate ClearLane data dashboard with MTA operations center',
+      'Begin community outreach and student engagement programs',
+      'Establish regular reporting to MTA leadership and city officials'
+    ],
+    icon: '⚡'
+  },
+  {
+    title: 'Long-term Integration (90+ days)',
+    recommendations: [
+      'Scale successful interventions to full 90-location network',
+      'Integrate machine learning prediction models for dynamic deployment',
+      'Develop policy framework for replication in other cities',
+      'Establish academic partnership for longitudinal impact studies'
+    ],
+    icon: '🌟'
+  }
+];
+---
+
+<BaseLayout
+  title={pageTitle}
+  description={pageDescription}
+  keywords="ClearLane solution, targeted bus enforcement, MTA policy recommendations, student transit equity"
+>
+  <Header currentPath="/solution" />
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <Hero
+      title="The ClearLane Solution"
+      subtitle="Targeted Enforcement Framework"
+      description="A surgical, data-driven approach that solves 80% of student transit problems with 20% of current resources. Proven effective, ready to implement."
+      ctaText="View Implementation Plan"
+      ctaHref="#implementation"
+      secondaryCtaText="Contact MTA Officials"
+      secondaryCtaHref="/contact"
+      variant="solution"
+      stats={[
+        { value: '40%', label: 'Violation Reduction', description: 'Expected at priority locations' },
+        { value: '12%', label: 'Speed Improvement', description: 'Average across targeted routes' },
+        { value: '$2.3M', label: 'Annual Investment', description: 'Full system implementation' }
+      ]}
+    >
+      <div slot="visual">
+        <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+          <h3 class="text-lg font-semibold text-white mb-4">ClearLane Impact Model</h3>
+
+          {/* Before/After Visualization */}
+          <div class="space-y-4">
+            <div class="bg-white/5 p-4 rounded-lg">
+              <div class="text-sm text-white/80 mb-2">Current State: Random Enforcement</div>
+              <div class="flex space-x-1 mb-2">
+                {Array.from({length: 20}, (_, i) => (
+                  <div key={i} class={`w-3 h-3 rounded-sm ${i < 16 ? 'bg-red-400' : 'bg-gray-400'}`}></div>
+                ))}
+              </div>
+              <div class="text-xs text-white/60">80% of violations continue, scattered enforcement</div>
+            </div>
+
+            <div class="bg-white/5 p-4 rounded-lg">
+              <div class="text-sm text-white/80 mb-2">ClearLane: Targeted Enforcement</div>
+              <div class="flex space-x-1 mb-2">
+                {Array.from({length: 20}, (_, i) => (
+                  <div key={i} class={`w-3 h-3 rounded-sm ${i < 8 ? 'bg-red-400' : 'bg-green-400'}`}></div>
+                ))}
+              </div>
+              <div class="text-xs text-white/60">60% violation reduction, focused on student routes</div>
+            </div>
+          </div>
+
+          <div class="mt-4 text-xs text-white/70 text-center">
+            Same resources, surgical deployment
+          </div>
+        </div>
+      </div>
+    </Hero>
+
+    <!-- Solution Framework Section -->
+    <section class="py-16 bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <h2 class="text-3xl font-bold text-gray-900 mb-4">
+            Three Pillars of Success
+          </h2>
+          <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+            ClearLane transforms enforcement from reactive to proactive, random to targeted,
+            inefficient to optimized, all while protecting the study time working students depend on.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
+          {solutionPillars.map((pillar, index) => (
+            <Card variant="elevated" hover={true} key={pillar.title} className="text-center h-full">
+              <div class="text-5xl mb-6">{pillar.icon}</div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-4">{pillar.title}</h3>
+              <p class="text-gray-600 mb-6">{pillar.description}</p>
+              <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+                <div class="text-sm font-semibold text-green-800">Key Benefit:</div>
+                <div class="text-sm text-green-700">{pillar.benefit}</div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        <div class="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-8 text-center border border-primary/10">
+          <h3 class="text-2xl font-bold text-gray-900 mb-4">
+            Why ClearLane Works
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="text-left">
+              <h4 class="font-semibold text-gray-900 mb-3">Evidence-Based</h4>
+              <p class="text-gray-600">
+                Built on analysis of 3.7M violation records, proven ACE program results,
+                and validated CUNY student commute patterns.
+              </p>
+            </div>
+            <div class="text-left">
+              <h4 class="font-semibold text-gray-900 mb-3">Resource-Efficient</h4>
+              <p class="text-gray-600">
+                Uses existing enforcement infrastructure and personnel,
+                simply redirected to high-impact locations and times.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Implementation Roadmap -->
+    <section id="implementation" class="py-16 bg-gray-50 print-break-before">
+      <DataVisualizationLayout
+        title="Implementation Roadmap"
+        description="Phased approach for deploying ClearLane across NYC's transit network"
+        layout="story"
+      >
+        <div class="space-y-12">
+          {implementationPhases.map((phase, index) => (
+            <Card variant="elevated" key={phase.phase} className="overflow-hidden">
+              <div class="bg-gradient-to-r from-primary to-secondary text-white p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div class="text-sm font-semibold opacity-90 mb-1">{phase.phase}</div>
+                    <div class="text-2xl font-bold mb-2">{phase.title}</div>
+                    <div class="text-primary-light">{phase.description}</div>
+                  </div>
+                  <div class="mt-4 sm:mt-0 sm:text-right">
+                    <div class="text-sm opacity-90">Duration</div>
+                    <div class="font-semibold">{phase.duration}</div>
+                    <div class="text-sm opacity-90 mt-2">Locations</div>
+                    <div class="font-semibold">{phase.locations}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div>
+                    <h4 class="font-semibold text-gray-900 mb-3">Key Deliverables</h4>
+                    <ul class="space-y-2">
+                      {phase.deliverables.map((deliverable, i) => (
+                        <li key={i} class="flex items-start text-gray-600">
+                          <div class="w-2 h-2 bg-primary rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                          <span class="text-sm">{deliverable}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 class="font-semibold text-gray-900 mb-3">Success Metrics</h4>
+                    <div class="space-y-3 mb-4">
+                      {phase.success_metrics.map((metric, i) => (
+                        <div key={i} class="bg-green-50 px-3 py-2 rounded-lg border border-green-200">
+                          <span class="text-sm font-medium text-green-800">{metric}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                      <div class="text-sm font-medium text-gray-700 mb-1">Estimated Budget</div>
+                      <div class="text-lg font-bold text-primary">{phase.budget}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Timeline Visual */}
+        <div class="mt-12 bg-white rounded-2xl p-8 border border-gray-200">
+          <h3 class="text-xl font-semibold text-gray-900 mb-6 text-center">
+            18-Month Implementation Timeline
+          </h3>
+          <div class="relative">
+            <div class="absolute left-0 top-4 w-full h-0.5 bg-gray-200"></div>
+            <div class="flex justify-between relative">
+              {implementationPhases.map((phase, index) => (
+                <div key={phase.phase} class="text-center">
+                  <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-bold mb-2">
+                    {index + 1}
+                  </div>
+                  <div class="text-sm font-medium text-gray-900">{phase.phase}</div>
+                  <div class="text-xs text-gray-500">{phase.duration}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </DataVisualizationLayout>
+    </section>
+
+    <!-- Expected Outcomes -->
+    <section class="py-16 bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <h2 class="text-3xl font-bold text-gray-900 mb-4">
+            Projected Impact
+          </h2>
+          <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+            Based on proven ACE program results and our comprehensive analysis of violation patterns,
+            ClearLane can deliver measurable improvements across multiple dimensions.
+          </p>
+        </div>
+
+        <div class="space-y-12">
+          {expectedOutcomes.map((category) => (
+            <div key={category.category}>
+              <h3 class="text-2xl font-semibold text-gray-900 mb-6 text-center">
+                {category.category}
+              </h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {category.outcomes.map((outcome, index) => (
+                  <Card variant="elevated" key={outcome.metric} className="text-center">
+                    <div class="text-3xl font-bold text-primary mb-2">{outcome.metric}</div>
+                    <div class="text-gray-600">{outcome.description}</div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div class="mt-16 bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl p-8 text-center border border-green-200">
+          <h3 class="text-2xl font-bold text-gray-900 mb-4">
+            Return on Investment
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <div class="text-4xl font-bold text-green-600 mb-2">5:1</div>
+              <div class="text-gray-600">ROI Ratio</div>
+              <div class="text-sm text-gray-500 mt-1">$5 in benefits per $1 invested</div>
+            </div>
+            <div>
+              <div class="text-4xl font-bold text-blue-600 mb-2">$11.5M</div>
+              <div class="text-gray-600">Annual Value Created</div>
+              <div class="text-sm text-gray-500 mt-1">Student time savings + efficiency gains</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Policy Recommendations -->
+    <section class="py-16 bg-gray-50">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <h2 class="text-3xl font-bold text-gray-900 mb-4">
+            Policy Recommendations
+          </h2>
+          <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+            Specific, actionable steps for MTA leadership and city officials to implement ClearLane
+            and protect student study time across NYC.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+          {policyRecommendations.map((category, index) => (
+            <Card variant="elevated" key={category.title} className="h-full">
+              <div class="text-center mb-4">
+                <div class="text-4xl mb-3">{category.icon}</div>
+                <h3 class="text-lg font-semibold text-gray-900">{category.title}</h3>
+              </div>
+
+              <ul class="space-y-3">
+                {category.recommendations.map((rec, i) => (
+                  <li key={i} class="flex items-start text-sm text-gray-600">
+                    <div class="w-2 h-2 bg-primary rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                    <span>{rec}</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          ))}
+        </div>
+
+        <div class="bg-white rounded-2xl p-8 shadow-lg">
+          <h3 class="text-2xl font-bold text-gray-900 mb-6 text-center">
+            Ready to Act?
+          </h3>
+          <p class="text-gray-600 text-center mb-8 max-w-2xl mx-auto">
+            ClearLane is more than a research project, it's a ready-to-implement solution
+            that can immediately improve transit equity for working students across NYC.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button href="/contact" variant="primary" size="lg">
+              📧 Contact MTA Officials
+            </Button>
+            <Button href="/methodology" variant="secondary" size="lg">
+              📊 Review the Evidence
+            </Button>
+            <Button href="/#route-analyzer" variant="outline" size="lg">
+              🚌 Analyze Your Route
+            </Button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Success Stories Preview -->
+    <section class="py-16 bg-primary text-white">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl font-bold mb-6">
+          ClearLane Success Is Student Success
+        </h2>
+        <p class="text-xl text-primary-light mb-8 max-w-2xl mx-auto">
+          When buses run on time, students thrive. When enforcement is targeted and effective,
+          the "rolling study hall" becomes a reality for 270,000 CUNY students.
+        </p>
+
+        <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-8 mb-8">
+          <blockquote class="text-lg italic mb-4">
+            "My BxM10 commute is when I get my best studying done. When the bus is delayed,
+            I don't just lose travel time, I lose my most productive hours of the day."
+          </blockquote>
+          <cite class="text-primary-light">— CUNY Student, Baruch College</cite>
+        </div>
+
+        <p class="text-primary-light mb-8">
+          This isn't just about transportation. It's about educational equity, student success,
+          and the recognition that for working students, buses are educational infrastructure.
+        </p>
+
+        <Button href="/about" variant="outline" size="lg" className="text-white border-white hover:bg-white hover:text-primary">
+          👥 Meet the Team Behind ClearLane
+        </Button>
+      </div>
+    </section>
+  </main>
+</BaseLayout>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Interactive ROI calculator
+    const createROICalculator = () => {
+      const roiSection = document.querySelector('[data-roi-calculator]');
+      if (!roiSection) return;
+
+      // Add interactive elements for ROI calculation
+      // This would be expanded in a full implementation
+      console.log('ROI calculator initialized');
+    };
+
+    createROICalculator();
+
+    // Track solution engagement
+    const implementationSection = document.getElementById('implementation');
+    if (implementationSection) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && typeof gtag !== 'undefined') {
+            gtag('event', 'solution_implementation_view', {
+              engagement_depth: 'detailed_review',
+              page_section: 'implementation_roadmap'
+            });
+          }
+        });
+      }, { threshold: 0.5 });
+
+      observer.observe(implementationSection);
+    }
+
+    // Track policy recommendation interactions
+    const policyCards = document.querySelectorAll('[data-policy-card]');
+    policyCards.forEach((card, index) => {
+      card.addEventListener('click', () => {
+        if (typeof gtag !== 'undefined') {
+          gtag('event', 'policy_recommendation_click', {
+            recommendation_phase: index + 1,
+            engagement_type: 'policy_interest'
+          });
+        }
+      });
+    });
+
+    // Track CTA clicks with solution context
+    const ctaButtons = document.querySelectorAll('a[href*="/contact"]');
+    ctaButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        if (typeof gtag !== 'undefined') {
+          gtag('event', 'solution_cta_click', {
+            button_text: button.textContent?.trim(),
+            solution_section: 'ready_to_implement',
+            conversion_intent: 'high'
+          });
+        }
+      });
+    });
+
+    // Add print optimization
+    window.addEventListener('beforeprint', () => {
+      document.body.classList.add('printing');
+
+      // Expand all collapsed sections for print
+      const collapsedElements = document.querySelectorAll('[hidden]');
+      collapsedElements.forEach(el => {
+        el.removeAttribute('hidden');
+        el.setAttribute('data-was-hidden', 'true');
+      });
+    });
+
+    window.addEventListener('afterprint', () => {
+      document.body.classList.remove('printing');
+
+      // Restore collapsed state
+      const wasHiddenElements = document.querySelectorAll('[data-was-hidden]');
+      wasHiddenElements.forEach(el => {
+        el.setAttribute('hidden', '');
+        el.removeAttribute('data-was-hidden');
+      });
+    });
+  });
+</script>

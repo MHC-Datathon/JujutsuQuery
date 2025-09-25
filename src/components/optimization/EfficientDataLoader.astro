@@ -1,0 +1,1195 @@
+---
+/**
+ * Efficient Data Loader - Optimized CSV loading with pagination, sampling, and caching
+ * Handles large datasets from dashboard/insights/ with performance-first approach
+ */
+
+export interface DataLoaderConfig {
+  maxInitialRows?: number;
+  sampleSize?: number;
+  enableVirtualization?: boolean;
+  enablePagination?: boolean;
+  cacheEnabled?: boolean;
+  compressionEnabled?: boolean;
+  streamingEnabled?: boolean;
+}
+
+const defaultConfig: DataLoaderConfig = {
+  maxInitialRows: 1000,
+  sampleSize: 500,
+  enableVirtualization: true,
+  enablePagination: true,
+  cacheEnabled: true,
+  compressionEnabled: true,
+  streamingEnabled: true
+};
+---
+
+<div id="efficient-data-loader" class="data-loader-container">
+  <!-- Data Loading Interface -->
+  <div class="data-controls" role="region" aria-label="Data loading controls">
+    <!-- Dataset Selection -->
+    <div class="control-group">
+      <label for="dataset-select" class="control-label">Dataset:</label>
+      <select id="dataset-select" class="control-select" aria-describedby="dataset-info">
+        <option value="">Choose dataset...</option>
+        <option value="top_hotspots.csv" data-size="151KB" data-rows="~500">Top Hotspots</option>
+        <option value="hourly_counts.csv" data-size="9.6MB" data-rows="~400K">Hourly Violations</option>
+        <option value="stop_counts.csv" data-size="27MB" data-rows="~1M">Stop-Level Data</option>
+        <option value="route_counts.csv" data-size="603KB" data-rows="~15K">Route Analysis</option>
+        <option value="monthly_counts.csv" data-size="76KB" data-rows="~2K">Monthly Trends</option>
+      </select>
+      <div id="dataset-info" class="dataset-info" aria-live="polite"></div>
+    </div>
+
+    <!-- Loading Strategy -->
+    <div class="control-group">
+      <fieldset>
+        <legend class="control-label">Loading Strategy:</legend>
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" name="loading-strategy" value="sample" checked>
+            <span>Sample Mode (Fast)</span>
+            <small>Load representative sample for quick analysis</small>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="loading-strategy" value="paginated">
+            <span>Paginated (Balanced)</span>
+            <small>Load data in chunks with navigation</small>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="loading-strategy" value="streaming">
+            <span>Streaming (Complete)</span>
+            <small>Progressive loading of full dataset</small>
+          </label>
+        </div>
+      </fieldset>
+    </div>
+
+    <!-- Advanced Options -->
+    <details class="advanced-options">
+      <summary>Advanced Options</summary>
+      <div class="options-grid">
+        <div class="option-item">
+          <label for="sample-size">Sample Size:</label>
+          <input type="range" id="sample-size" min="100" max="5000" value="500" step="100">
+          <output for="sample-size" id="sample-size-output">500</output>
+        </div>
+        <div class="option-item">
+          <label for="page-size">Page Size:</label>
+          <input type="range" id="page-size" min="50" max="1000" value="250" step="50">
+          <output for="page-size" id="page-size-output">250</output>
+        </div>
+        <div class="option-item">
+          <label class="checkbox-option">
+            <input type="checkbox" id="enable-cache" checked>
+            <span>Enable Caching</span>
+          </label>
+        </div>
+        <div class="option-item">
+          <label class="checkbox-option">
+            <input type="checkbox" id="enable-compression" checked>
+            <span>Compress Data</span>
+          </label>
+        </div>
+      </div>
+    </details>
+
+    <!-- Load Button -->
+    <button id="load-data-btn" class="load-button" disabled>
+      <span class="button-text">Select Dataset</span>
+      <span class="button-loader hidden" aria-hidden="true"></span>
+    </button>
+  </div>
+
+  <!-- Loading Progress -->
+  <div id="loading-progress" class="progress-container hidden" role="status" aria-live="polite">
+    <div class="progress-bar">
+      <div class="progress-fill" style="width: 0%"></div>
+    </div>
+    <div class="progress-text">
+      <span id="progress-status">Preparing data...</span>
+      <span id="progress-details"></span>
+    </div>
+  </div>
+
+  <!-- Data Summary -->
+  <div id="data-summary" class="data-summary hidden" role="region" aria-label="Dataset summary">
+    <div class="summary-stats">
+      <div class="stat-item">
+        <span class="stat-value" id="rows-loaded">0</span>
+        <span class="stat-label">Rows Loaded</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value" id="columns-count">0</span>
+        <span class="stat-label">Columns</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value" id="memory-usage">0KB</span>
+        <span class="stat-label">Memory Usage</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value" id="load-time">0ms</span>
+        <span class="stat-label">Load Time</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagination Controls -->
+  <div id="pagination-controls" class="pagination hidden" role="navigation" aria-label="Data pagination">
+    <button id="first-page" class="page-btn" aria-label="Go to first page">
+      <span aria-hidden="true">««</span>
+    </button>
+    <button id="prev-page" class="page-btn" aria-label="Go to previous page">
+      <span aria-hidden="true">‹</span>
+    </button>
+    <span class="page-info">
+      Page <span id="current-page">1</span> of <span id="total-pages">1</span>
+    </span>
+    <button id="next-page" class="page-btn" aria-label="Go to next page">
+      <span aria-hidden="true">›</span>
+    </button>
+    <button id="last-page" class="page-btn" aria-label="Go to last page">
+      <span aria-hidden="true">»»</span>
+    </button>
+  </div>
+
+  <!-- Data Table Container -->
+  <div id="data-table-container" class="table-container hidden">
+    <div class="table-wrapper" role="region" aria-label="Data table" tabindex="0">
+      <table id="data-table" class="data-table" role="table">
+        <thead id="table-header"></thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+
+    <!-- Virtual Scrolling Indicators -->
+    <div id="virtual-scroll-top" class="virtual-indicator" style="height: 0px;"></div>
+    <div id="virtual-scroll-bottom" class="virtual-indicator" style="height: 0px;"></div>
+  </div>
+
+  <!-- Error State -->
+  <div id="error-state" class="error-state hidden" role="alert">
+    <div class="error-icon">⚠️</div>
+    <h3 class="error-title">Data Loading Error</h3>
+    <p class="error-message" id="error-message-text"></p>
+    <button id="retry-button" class="retry-button">Try Again</button>
+  </div>
+
+  <!-- Accessibility Announcements -->
+  <div aria-live="assertive" aria-atomic="true" class="sr-only" id="announcements"></div>
+</div>
+
+<script>
+class EfficientDataLoader {
+  constructor(container) {
+    this.container = container;
+    this.config = { ...defaultConfig };
+    this.cache = new Map();
+    this.currentData = null;
+    this.currentPage = 1;
+    this.totalPages = 1;
+    this.pageSize = 250;
+    this.isLoading = false;
+
+    // Web Workers for heavy processing
+    this.parseWorker = null;
+    this.compressionWorker = null;
+
+    // Performance monitoring
+    this.metrics = {
+      loadTime: 0,
+      memoryUsage: 0,
+      compressionRatio: 0,
+      cacheHitRate: 0
+    };
+
+    this.init();
+  }
+
+  init() {
+    this.bindEventHandlers();
+    this.initializeWorkers();
+    this.setupPerformanceMonitoring();
+    this.restoreState();
+  }
+
+  bindEventHandlers() {
+    // Dataset selection
+    const datasetSelect = this.container.querySelector('#dataset-select');
+    datasetSelect?.addEventListener('change', (e) => this.handleDatasetChange(e));
+
+    // Loading strategy
+    const strategyRadios = this.container.querySelectorAll('input[name="loading-strategy"]');
+    strategyRadios.forEach(radio => {
+      radio.addEventListener('change', () => this.updateLoadingStrategy());
+    });
+
+    // Range inputs
+    const sampleSizeInput = this.container.querySelector('#sample-size');
+    sampleSizeInput?.addEventListener('input', (e) => {
+      const output = this.container.querySelector('#sample-size-output');
+      if (output) output.textContent = e.target.value;
+    });
+
+    const pageSizeInput = this.container.querySelector('#page-size');
+    pageSizeInput?.addEventListener('input', (e) => {
+      this.pageSize = parseInt(e.target.value);
+      const output = this.container.querySelector('#page-size-output');
+      if (output) output.textContent = e.target.value;
+    });
+
+    // Load button
+    const loadButton = this.container.querySelector('#load-data-btn');
+    loadButton?.addEventListener('click', () => this.loadSelectedDataset());
+
+    // Pagination
+    this.setupPaginationHandlers();
+
+    // Keyboard navigation
+    this.setupKeyboardNavigation();
+
+    // Retry button
+    const retryButton = this.container.querySelector('#retry-button');
+    retryButton?.addEventListener('click', () => this.retryLoad());
+  }
+
+  initializeWorkers() {
+    // CSV parsing worker
+    if (typeof Worker !== 'undefined') {
+      try {
+        this.parseWorker = new Worker(new URL('./workers/csvParser.js', import.meta.url));
+        this.parseWorker.addEventListener('message', (e) => this.handleWorkerMessage(e));
+      } catch (error) {
+        console.warn('Web Workers not available, falling back to main thread');
+      }
+    }
+  }
+
+  setupPerformanceMonitoring() {
+    // Performance observer for monitoring
+    if (typeof PerformanceObserver !== 'undefined') {
+      const observer = new PerformanceObserver((list) => {
+        const entries = list.getEntries();
+        entries.forEach(entry => {
+          if (entry.name.includes('data-load')) {
+            this.metrics.loadTime = entry.duration;
+            this.updateMetricsDisplay();
+          }
+        });
+      });
+
+      observer.observe({ entryTypes: ['measure'] });
+    }
+  }
+
+  handleDatasetChange(e) {
+    const select = e.target;
+    const selectedOption = select.options[select.selectedIndex];
+
+    if (selectedOption.value) {
+      // Update dataset info
+      const info = this.container.querySelector('#dataset-info');
+      const size = selectedOption.dataset.size;
+      const rows = selectedOption.dataset.rows;
+
+      info.innerHTML = `
+        <div class="dataset-details">
+          <span class="dataset-size">${size}</span>
+          <span class="dataset-rows">${rows} rows</span>
+          <span class="dataset-status" id="cache-status"></span>
+        </div>
+      `;
+
+      // Check cache status
+      const cacheStatus = this.container.querySelector('#cache-status');
+      if (this.cache.has(selectedOption.value)) {
+        cacheStatus.textContent = 'Cached ⚡';
+        cacheStatus.className = 'dataset-status cached';
+      } else {
+        cacheStatus.textContent = 'Not cached';
+        cacheStatus.className = 'dataset-status not-cached';
+      }
+
+      // Enable load button
+      const loadButton = this.container.querySelector('#load-data-btn');
+      loadButton.disabled = false;
+      loadButton.querySelector('.button-text').textContent = 'Load Dataset';
+    }
+
+    this.announceToScreenReader(`Dataset ${selectedOption.text} selected`);
+  }
+
+  updateLoadingStrategy() {
+    const strategy = this.container.querySelector('input[name="loading-strategy"]:checked')?.value;
+
+    // Update configuration based on strategy
+    switch (strategy) {
+      case 'sample':
+        this.config.maxInitialRows = parseInt(this.container.querySelector('#sample-size').value);
+        this.config.enablePagination = false;
+        this.config.enableVirtualization = false;
+        break;
+      case 'paginated':
+        this.config.enablePagination = true;
+        this.config.enableVirtualization = false;
+        break;
+      case 'streaming':
+        this.config.streamingEnabled = true;
+        this.config.enableVirtualization = true;
+        break;
+    }
+
+    this.announceToScreenReader(`Loading strategy changed to ${strategy}`);
+  }
+
+  async loadSelectedDataset() {
+    const select = this.container.querySelector('#dataset-select');
+    const dataset = select.value;
+
+    if (!dataset) return;
+
+    this.setLoadingState(true);
+
+    try {
+      performance.mark('data-load-start');
+
+      const strategy = this.container.querySelector('input[name="loading-strategy"]:checked').value;
+      let data;
+
+      // Check cache first
+      if (this.config.cacheEnabled && this.cache.has(dataset)) {
+        data = this.cache.get(dataset);
+        this.announceToScreenReader('Loading data from cache');
+      } else {
+        // Load fresh data
+        data = await this.loadDataWithStrategy(dataset, strategy);
+
+        // Cache the result
+        if (this.config.cacheEnabled) {
+          this.cache.set(dataset, data);
+        }
+      }
+
+      performance.mark('data-load-end');
+      performance.measure('data-load-duration', 'data-load-start', 'data-load-end');
+
+      this.currentData = data;
+      this.displayData(data, strategy);
+      this.updateMetricsDisplay();
+
+    } catch (error) {
+      this.showError(error.message);
+    } finally {
+      this.setLoadingState(false);
+    }
+  }
+
+  async loadDataWithStrategy(dataset, strategy) {
+    const url = `/dashboard/insights/${dataset}`;
+
+    switch (strategy) {
+      case 'sample':
+        return this.loadSampledData(url);
+      case 'paginated':
+        return this.loadPaginatedData(url);
+      case 'streaming':
+        return this.loadStreamingData(url);
+      default:
+        throw new Error('Unknown loading strategy');
+    }
+  }
+
+  async loadSampledData(url) {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Failed to fetch ${url}`);
+
+    const text = await response.text();
+    const lines = text.split('\n');
+    const headers = lines[0];
+
+    // Sample rows
+    const sampleSize = this.config.maxInitialRows;
+    const dataLines = lines.slice(1).filter(line => line.trim());
+    const sampledLines = this.sampleArray(dataLines, sampleSize);
+
+    const sampledCSV = [headers, ...sampledLines].join('\n');
+
+    return this.parseCSV(sampledCSV);
+  }
+
+  async loadPaginatedData(url) {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Failed to fetch ${url}`);
+
+    const text = await response.text();
+    const parsed = await this.parseCSV(text);
+
+    // Set up pagination
+    this.totalPages = Math.ceil(parsed.length / this.pageSize);
+    this.currentPage = 1;
+
+    return parsed;
+  }
+
+  async loadStreamingData(url) {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Failed to fetch ${url}`);
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('Streaming not supported');
+
+    let result = '';
+    let decoder = new TextDecoder();
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        result += decoder.decode(value, { stream: true });
+
+        // Update progress
+        const loaded = result.length;
+        const total = response.headers.get('content-length');
+        if (total) {
+          this.updateProgress((loaded / total) * 100);
+        }
+      }
+
+      return this.parseCSV(result);
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  async parseCSV(csvText) {
+    if (this.parseWorker) {
+      // Use web worker for parsing
+      return new Promise((resolve, reject) => {
+        const handleMessage = (e) => {
+          if (e.data.type === 'parsed') {
+            this.parseWorker.removeEventListener('message', handleMessage);
+            resolve(e.data.data);
+          } else if (e.data.type === 'error') {
+            this.parseWorker.removeEventListener('message', handleMessage);
+            reject(new Error(e.data.message));
+          }
+        };
+
+        this.parseWorker.addEventListener('message', handleMessage);
+        this.parseWorker.postMessage({ csvText, config: this.config });
+      });
+    } else {
+      // Fallback to main thread parsing
+      return this.parseCSVMainThread(csvText);
+    }
+  }
+
+  parseCSVMainThread(csvText) {
+    const lines = csvText.trim().split('\n');
+    const headers = this.parseCSVLine(lines[0]);
+    const data = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+
+      const values = this.parseCSVLine(lines[i]);
+      const row = {};
+
+      headers.forEach((header, index) => {
+        row[header] = values[index] || '';
+      });
+
+      data.push(row);
+    }
+
+    return data;
+  }
+
+  parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+
+    result.push(current.trim());
+    return result;
+  }
+
+  sampleArray(array, size) {
+    if (array.length <= size) return array;
+
+    const step = Math.floor(array.length / size);
+    const sampled = [];
+
+    for (let i = 0; i < array.length; i += step) {
+      if (sampled.length >= size) break;
+      sampled.push(array[i]);
+    }
+
+    return sampled;
+  }
+
+  displayData(data, strategy) {
+    if (!data || data.length === 0) {
+      this.showError('No data to display');
+      return;
+    }
+
+    // Show data summary
+    this.showDataSummary(data);
+
+    // Display table based on strategy
+    if (strategy === 'paginated') {
+      this.displayPaginatedData(data);
+    } else {
+      this.displayAllData(data);
+    }
+
+    this.announceToScreenReader(`Data loaded: ${data.length} rows displayed`);
+  }
+
+  showDataSummary(data) {
+    const summary = this.container.querySelector('#data-summary');
+    const headers = data.length > 0 ? Object.keys(data[0]) : [];
+
+    this.container.querySelector('#rows-loaded').textContent = data.length.toLocaleString();
+    this.container.querySelector('#columns-count').textContent = headers.length;
+    this.container.querySelector('#memory-usage').textContent = this.formatBytes(this.estimateMemoryUsage(data));
+    this.container.querySelector('#load-time').textContent = Math.round(this.metrics.loadTime) + 'ms';
+
+    summary.classList.remove('hidden');
+  }
+
+  displayPaginatedData(data) {
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    const endIndex = Math.min(startIndex + this.pageSize, data.length);
+    const pageData = data.slice(startIndex, endIndex);
+
+    this.renderTable(pageData);
+    this.showPaginationControls();
+    this.updatePaginationState();
+  }
+
+  displayAllData(data) {
+    this.renderTable(data);
+    this.hidePaginationControls();
+  }
+
+  renderTable(data) {
+    if (!data || data.length === 0) return;
+
+    const table = this.container.querySelector('#data-table');
+    const thead = this.container.querySelector('#table-header');
+    const tbody = this.container.querySelector('#table-body');
+    const container = this.container.querySelector('#data-table-container');
+
+    // Clear existing content
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+
+    // Create headers
+    const headers = Object.keys(data[0]);
+    const headerRow = document.createElement('tr');
+    headerRow.setAttribute('role', 'row');
+
+    headers.forEach((header, index) => {
+      const th = document.createElement('th');
+      th.textContent = header;
+      th.setAttribute('role', 'columnheader');
+      th.setAttribute('scope', 'col');
+      th.setAttribute('tabindex', '0');
+      th.setAttribute('aria-sort', 'none');
+      th.style.cursor = 'pointer';
+
+      // Add sorting functionality
+      th.addEventListener('click', () => this.sortColumn(index, header));
+      th.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.sortColumn(index, header);
+        }
+      });
+
+      headerRow.appendChild(th);
+    });
+
+    thead.appendChild(headerRow);
+
+    // Create data rows
+    data.forEach((row, rowIndex) => {
+      const tr = document.createElement('tr');
+      tr.setAttribute('role', 'row');
+      tr.setAttribute('tabindex', '0');
+
+      headers.forEach((header, colIndex) => {
+        const td = document.createElement('td');
+        td.textContent = row[header] || '';
+        td.setAttribute('role', 'cell');
+
+        // Add keyboard navigation
+        td.addEventListener('keydown', (e) => this.handleTableKeydown(e, rowIndex, colIndex));
+
+        tr.appendChild(td);
+      });
+
+      tbody.appendChild(tr);
+    });
+
+    container.classList.remove('hidden');
+
+    // Set focus to first cell for accessibility
+    const firstCell = tbody.querySelector('tr:first-child td:first-child');
+    if (firstCell) {
+      firstCell.setAttribute('tabindex', '0');
+    }
+  }
+
+  // Additional methods for pagination, sorting, error handling, etc.
+  setupPaginationHandlers() {
+    const firstBtn = this.container.querySelector('#first-page');
+    const prevBtn = this.container.querySelector('#prev-page');
+    const nextBtn = this.container.querySelector('#next-page');
+    const lastBtn = this.container.querySelector('#last-page');
+
+    firstBtn?.addEventListener('click', () => this.goToPage(1));
+    prevBtn?.addEventListener('click', () => this.goToPage(this.currentPage - 1));
+    nextBtn?.addEventListener('click', () => this.goToPage(this.currentPage + 1));
+    lastBtn?.addEventListener('click', () => this.goToPage(this.totalPages));
+  }
+
+  goToPage(page) {
+    if (page < 1 || page > this.totalPages || page === this.currentPage) return;
+
+    this.currentPage = page;
+    this.displayPaginatedData(this.currentData);
+    this.announceToScreenReader(`Page ${page} of ${this.totalPages}`);
+  }
+
+  // Utility methods
+  formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  estimateMemoryUsage(data) {
+    return JSON.stringify(data).length * 2; // Rough estimation
+  }
+
+  announceToScreenReader(message) {
+    const announcements = this.container.querySelector('#announcements');
+    if (announcements) {
+      announcements.textContent = message;
+      setTimeout(() => announcements.textContent = '', 1000);
+    }
+  }
+
+  setLoadingState(loading) {
+    this.isLoading = loading;
+    const button = this.container.querySelector('#load-data-btn');
+    const loader = button?.querySelector('.button-loader');
+    const text = button?.querySelector('.button-text');
+    const progress = this.container.querySelector('#loading-progress');
+
+    if (loading) {
+      button.disabled = true;
+      loader?.classList.remove('hidden');
+      text.textContent = 'Loading...';
+      progress?.classList.remove('hidden');
+    } else {
+      button.disabled = false;
+      loader?.classList.add('hidden');
+      text.textContent = 'Load Dataset';
+      progress?.classList.add('hidden');
+    }
+  }
+
+  updateProgress(percent) {
+    const fill = this.container.querySelector('.progress-fill');
+    const status = this.container.querySelector('#progress-status');
+
+    if (fill) fill.style.width = `${Math.min(percent, 100)}%`;
+    if (status) status.textContent = `Loading... ${Math.round(percent)}%`;
+  }
+
+  showError(message) {
+    const errorState = this.container.querySelector('#error-state');
+    const messageEl = this.container.querySelector('#error-message-text');
+
+    if (messageEl) messageEl.textContent = message;
+    errorState?.classList.remove('hidden');
+
+    this.announceToScreenReader(`Error loading data: ${message}`);
+  }
+
+  hideError() {
+    const errorState = this.container.querySelector('#error-state');
+    errorState?.classList.add('hidden');
+  }
+
+  retryLoad() {
+    this.hideError();
+    this.loadSelectedDataset();
+  }
+}
+
+// Initialize data loader
+document.addEventListener('DOMContentLoaded', () => {
+  const container = document.getElementById('efficient-data-loader');
+  if (container) {
+    new EfficientDataLoader(container);
+  }
+});
+</script>
+
+<style>
+.data-loader-container {
+  max-width: 100%;
+  margin: 0 auto;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.data-controls {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.control-group {
+  margin-bottom: 1.5rem;
+}
+
+.control-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.control-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+}
+
+.dataset-info {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #f3f4f6;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.dataset-details {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.dataset-status.cached {
+  color: #059669;
+  font-weight: 600;
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.radio-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.radio-option:hover {
+  background: #f9fafb;
+  border-color: #3b82f6;
+}
+
+.radio-option input[type="radio"] {
+  margin: 0.125rem 0 0 0;
+}
+
+.radio-option small {
+  display: block;
+  color: #6b7280;
+  font-size: 0.75rem;
+}
+
+.advanced-options {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  padding: 1rem;
+}
+
+.advanced-options summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #374151;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.option-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.option-item input[type="range"] {
+  width: 100%;
+}
+
+.option-item output {
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.load-button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.load-button:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.load-button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.button-loader {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.progress-container {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 0.5rem;
+  background: #e5e7eb;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #3b82f6;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.data-summary {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 0.375rem;
+}
+
+.stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin: 1rem 0;
+  padding: 1rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+}
+
+.page-btn {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  background: white;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-weight: 600;
+  color: #374151;
+}
+
+.table-container {
+  overflow: auto;
+  max-height: 60vh;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background: white;
+}
+
+.table-wrapper {
+  position: relative;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.data-table th {
+  background: #f8fafc;
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.data-table th:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: -2px;
+}
+
+.data-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.data-table tr:hover {
+  background: #f8fafc;
+}
+
+.data-table tr:focus-within {
+  background: #eff6ff;
+}
+
+.error-state {
+  text-align: center;
+  padding: 3rem;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 0.5rem;
+  color: #dc2626;
+}
+
+.error-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.error-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.error-message {
+  margin-bottom: 1.5rem;
+  color: #7f1d1d;
+}
+
+.retry-button {
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.retry-button:hover {
+  background: #b91c1c;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .options-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .data-table {
+    font-size: 0.75rem;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 0.5rem;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .data-controls,
+  .data-summary,
+  .table-container {
+    border-width: 2px;
+  }
+
+  .load-button {
+    border: 2px solid currentColor;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .button-loader {
+    animation: none;
+  }
+
+  .progress-fill,
+  .radio-option,
+  .page-btn,
+  .load-button {
+    transition: none;
+  }
+}
+
+/* Print styles */
+@media print {
+  .data-controls,
+  .pagination,
+  .error-state {
+    display: none;
+  }
+
+  .table-container {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .data-table {
+    font-size: 8pt;
+  }
+}
+</style>
