@@ -1,0 +1,1218 @@
+---
+/**
+ * Optimized Map Embed - High-performance embedding of enhanced_spatial_intelligence_map.html
+ * Implements lazy loading, viewport optimization, and accessibility enhancements
+ */
+
+export interface MapEmbedProps {
+  mapUrl?: string;
+  title: string;
+  description?: string;
+  width?: string;
+  height?: string;
+  enableInteraction?: boolean;
+  priority?: boolean;
+  fallbackImage?: string;
+  ariaDescribedBy?: string;
+  className?: string;
+}
+
+const {
+  mapUrl = '/plots/enhanced_spatial_intelligence_map.html',
+  title,
+  description,
+  width = '100%',
+  height = '600px',
+  enableInteraction = true,
+  priority = false,
+  fallbackImage = '/plots/spatial_map_fallback.png',
+  ariaDescribedBy,
+  className = ''
+} = Astro.props as MapEmbedProps;
+
+// Generate unique ID for this map instance
+const mapId = `map-${Math.random().toString(36).substr(2, 9)}`;
+---
+
+<div class={`optimized-map-container ${className}`}
+     id={mapId}
+     data-map-url={mapUrl}
+     data-priority={priority}
+     role="img"
+     aria-label={title}
+     aria-describedby={ariaDescribedBy}>
+
+  <!-- Map Loading States -->
+  <div class="map-loading-state" id={`${mapId}-loading`}>
+    <div class="loading-content">
+      <div class="loading-spinner" aria-hidden="true"></div>
+      <div class="loading-text">
+        <p class="loading-message">Loading interactive map...</p>
+        <p class="loading-description">{description}</p>
+      </div>
+    </div>
+    <div class="loading-progress">
+      <div class="progress-bar">
+        <div class="progress-fill" style="width: 0%"></div>
+      </div>
+      <div class="progress-text">
+        <span id={`${mapId}-progress-text`}>Preparing visualization...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fallback Image (shown while loading or on error) -->
+  <div class="map-fallback hidden" id={`${mapId}-fallback`}>
+    <img src={fallbackImage}
+         alt={`Static version: ${title}`}
+         class="fallback-image"
+         loading={priority ? "eager" : "lazy"} />
+    <div class="fallback-overlay">
+      <div class="fallback-message">
+        <h3>Interactive Map Unavailable</h3>
+        <p>Showing static version of {title}</p>
+        <button class="retry-button" onclick={`retryMapLoad('${mapId}')`}>
+          🔄 Try Interactive Version
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Map Container -->
+  <div class="map-iframe-container hidden" id={`${mapId}-container`}>
+    <!-- Intersection observer trigger -->
+    <div class="map-intersection-trigger" data-map-id={mapId}></div>
+
+    <!-- Map controls overlay -->
+    <div class="map-controls" role="toolbar" aria-label="Map controls">
+      <button class="control-btn fullscreen-btn"
+              onclick={`toggleFullscreen('${mapId}')`}
+              aria-label="Toggle fullscreen"
+              title="Toggle fullscreen view">
+        📺
+      </button>
+      <button class="control-btn refresh-btn"
+              onclick={`refreshMap('${mapId}')`}
+              aria-label="Refresh map"
+              title="Refresh map data">
+        🔄
+      </button>
+      <button class="control-btn info-btn"
+              onclick={`showMapInfo('${mapId}')`}
+              aria-label="Map information"
+              title="Show map information">
+        ℹ️
+      </button>
+      <button class="control-btn accessibility-btn"
+              onclick={`toggleAccessibilityMode('${mapId}')`}
+              aria-label="Toggle accessibility mode"
+              title="Toggle high contrast and screen reader mode">
+        ♿
+      </button>
+    </div>
+
+    <!-- Map iframe (loaded dynamically) -->
+    <iframe id={`${mapId}-iframe`}
+            class="map-iframe"
+            src="about:blank"
+            title={title}
+            width={width}
+            height={height}
+            frameborder="0"
+            loading={priority ? "eager" : "lazy"}
+            allow="fullscreen"
+            sandbox="allow-scripts allow-same-origin allow-popups"
+            aria-describedby={ariaDescribedBy}
+            onload={`handleMapLoad('${mapId}')`}
+            onerror={`handleMapError('${mapId}')`}>
+    </iframe>
+
+    <!-- Performance metrics overlay -->
+    <div class="performance-metrics" style="display: none;">
+      <div class="metric">Load Time: <span id={`${mapId}-load-time`}>-</span>ms</div>
+      <div class="metric">Memory: <span id={`${mapId}-memory`}>-</span>KB</div>
+      <div class="metric">FPS: <span id={`${mapId}-fps`}>-</span></div>
+    </div>
+  </div>
+
+  <!-- Map Information Modal -->
+  <div class="map-info-modal hidden" id={`${mapId}-info-modal`}
+       role="dialog"
+       aria-labelledby={`${mapId}-info-title`}
+       aria-modal="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id={`${mapId}-info-title`}>{title}</h2>
+        <button class="modal-close"
+                onclick={`closeMapInfo('${mapId}')`}
+                aria-label="Close information">
+          ✕
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="map-description" id={ariaDescribedBy}>
+          {description && <p>{description}</p>}
+          <div class="accessibility-info">
+            <h3>Accessibility Features:</h3>
+            <ul>
+              <li>Keyboard navigation with Tab and Arrow keys</li>
+              <li>Screen reader compatible with detailed descriptions</li>
+              <li>High contrast mode for better visibility</li>
+              <li>Alternative static image available</li>
+              <li>Zoom and pan controls accessible via keyboard</li>
+            </ul>
+          </div>
+          <div class="interaction-help">
+            <h3>Map Interactions:</h3>
+            <ul>
+              <li><kbd>Space/Enter</kbd> - Activate selected element</li>
+              <li><kbd>Arrow Keys</kbd> - Navigate map markers</li>
+              <li><kbd>+/-</kbd> - Zoom in/out</li>
+              <li><kbd>Escape</kbd> - Reset view</li>
+              <li><kbd>F</kbd> - Toggle fullscreen</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-backdrop" onclick={`closeMapInfo('${mapId}')`}></div>
+  </div>
+
+  <!-- Screen Reader Announcements -->
+  <div class="sr-only" aria-live="polite" id={`${mapId}-announcements`}></div>
+
+  <!-- Error State -->
+  <div class="map-error hidden" id={`${mapId}-error`} role="alert">
+    <div class="error-content">
+      <div class="error-icon">🗺️❌</div>
+      <h3>Map Loading Failed</h3>
+      <p class="error-message">Unable to load the interactive map. Please try again or view the static version.</p>
+      <div class="error-actions">
+        <button class="retry-button" onclick={`retryMapLoad('${mapId}')`}>
+          🔄 Retry Interactive Map
+        </button>
+        <button class="fallback-button" onclick={`showFallback('${mapId}')`}>
+          📷 Show Static Version
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+class OptimizedMapEmbed {
+  constructor(container) {
+    this.container = container;
+    this.mapId = container.id;
+    this.mapUrl = container.dataset.mapUrl;
+    this.isPriority = container.dataset.priority === 'true';
+    this.isLoaded = false;
+    this.isIntersecting = false;
+    this.loadStartTime = 0;
+    this.performanceMetrics = {};
+
+    // Components
+    this.loadingState = container.querySelector(`#${this.mapId}-loading`);
+    this.fallbackState = container.querySelector(`#${this.mapId}-fallback`);
+    this.mapContainer = container.querySelector(`#${this.mapId}-container`);
+    this.iframe = container.querySelector(`#${this.mapId}-iframe`);
+    this.errorState = container.querySelector(`#${this.mapId}-error`);
+    this.announcements = container.querySelector(`#${this.mapId}-announcements`);
+
+    // Initialize
+    this.init();
+  }
+
+  init() {
+    // Set up intersection observer for lazy loading
+    if (!this.isPriority) {
+      this.setupIntersectionObserver();
+    } else {
+      // Load immediately for priority maps
+      this.loadMap();
+    }
+
+    // Set up performance monitoring
+    this.setupPerformanceMonitoring();
+
+    // Set up keyboard navigation
+    this.setupKeyboardNavigation();
+
+    // Set up touch gestures for mobile
+    this.setupTouchGestures();
+
+    // Register global functions for this instance
+    this.registerGlobalFunctions();
+  }
+
+  setupIntersectionObserver() {
+    const trigger = this.container.querySelector('.map-intersection-trigger');
+
+    const options = {
+      root: null,
+      rootMargin: '100px', // Load when 100px before entering viewport
+      threshold: 0.1
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !this.isLoaded) {
+          this.isIntersecting = true;
+          this.loadMap();
+          observer.unobserve(entry.target);
+        }
+      });
+    }, options);
+
+    if (trigger) {
+      observer.observe(trigger);
+    }
+  }
+
+  setupPerformanceMonitoring() {
+    // Core Web Vitals tracking
+    if (typeof PerformanceObserver !== 'undefined') {
+      // Monitor FPS
+      this.setupFPSMonitoring();
+
+      // Monitor memory usage
+      this.setupMemoryMonitoring();
+
+      // Monitor load performance
+      this.setupLoadPerformanceMonitoring();
+    }
+  }
+
+  setupFPSMonitoring() {
+    let frameCount = 0;
+    let lastTime = performance.now();
+
+    const countFPS = () => {
+      frameCount++;
+      const currentTime = performance.now();
+
+      if (currentTime - lastTime >= 1000) {
+        const fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
+        this.performanceMetrics.fps = fps;
+
+        const fpsElement = this.container.querySelector(`#${this.mapId}-fps`);
+        if (fpsElement) fpsElement.textContent = fps;
+
+        frameCount = 0;
+        lastTime = currentTime;
+
+        // Track performance issues
+        if (fps < 30) {
+          this.handlePerformanceIssue('low_fps', fps);
+        }
+      }
+
+      if (this.isLoaded) {
+        requestAnimationFrame(countFPS);
+      }
+    };
+
+    requestAnimationFrame(countFPS);
+  }
+
+  setupMemoryMonitoring() {
+    const monitorMemory = () => {
+      if ('memory' in performance) {
+        const memory = performance.memory;
+        const usedMB = Math.round(memory.usedJSHeapSize / 1024 / 1024);
+
+        this.performanceMetrics.memory = usedMB;
+
+        const memoryElement = this.container.querySelector(`#${this.mapId}-memory`);
+        if (memoryElement) memoryElement.textContent = usedMB * 1024; // Show in KB
+
+        // Check for memory issues
+        const memoryUsagePercent = memory.usedJSHeapSize / memory.jsHeapSizeLimit;
+        if (memoryUsagePercent > 0.8) {
+          this.handlePerformanceIssue('high_memory', memoryUsagePercent);
+        }
+      }
+    };
+
+    // Monitor every 5 seconds
+    setInterval(monitorMemory, 5000);
+  }
+
+  setupLoadPerformanceMonitoring() {
+    // Track navigation timing
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const navigation = performance.getEntriesByType('navigation')[0];
+        if (navigation) {
+          this.performanceMetrics.pageLoadTime = navigation.loadEventEnd - navigation.fetchStart;
+        }
+      }, 0);
+    });
+  }
+
+  setupKeyboardNavigation() {
+    this.container.addEventListener('keydown', (e) => {
+      if (e.target.closest('.map-iframe-container')) {
+        this.handleKeyboardNavigation(e);
+      }
+    });
+  }
+
+  setupTouchGestures() {
+    let touchStartX, touchStartY, touchEndX, touchEndY;
+
+    this.container.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].clientX;
+      touchStartY = e.changedTouches[0].clientY;
+    }, { passive: true });
+
+    this.container.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].clientX;
+      touchEndY = e.changedTouches[0].clientY;
+
+      this.handleTouchGesture(touchStartX, touchStartY, touchEndX, touchEndY);
+    }, { passive: true });
+  }
+
+  loadMap() {
+    if (this.isLoaded || !this.mapUrl) return;
+
+    this.loadStartTime = performance.now();
+
+    // Show loading state
+    this.showLoadingState();
+
+    // Optimize iframe src for performance
+    const optimizedUrl = this.optimizeMapUrl(this.mapUrl);
+
+    // Load the map
+    this.iframe.src = optimizedUrl;
+    this.isLoaded = true;
+
+    // Announce to screen readers
+    this.announceToScreenReader('Loading interactive map');
+
+    // Track loading event
+    this.trackEvent('map_load_start', {
+      map_url: optimizedUrl,
+      is_priority: this.isPriority
+    });
+  }
+
+  optimizeMapUrl(url) {
+    // Add performance optimization parameters
+    const urlObj = new URL(url, window.location.origin);
+
+    // Add cache busting for development
+    if (window.location.hostname === 'localhost') {
+      urlObj.searchParams.set('v', Date.now().toString());
+    }
+
+    // Add performance hints
+    urlObj.searchParams.set('optimize', '1');
+    urlObj.searchParams.set('mobile', this.isMobile() ? '1' : '0');
+
+    return urlObj.toString();
+  }
+
+  showLoadingState() {
+    this.loadingState?.classList.remove('hidden');
+    this.mapContainer?.classList.add('hidden');
+    this.fallbackState?.classList.add('hidden');
+    this.errorState?.classList.add('hidden');
+
+    // Simulate loading progress
+    this.simulateLoadingProgress();
+  }
+
+  simulateLoadingProgress() {
+    const progressFill = this.container.querySelector('.progress-fill');
+    const progressText = this.container.querySelector(`#${this.mapId}-progress-text`);
+
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.random() * 15;
+      progress = Math.min(progress, 90); // Don't complete until actually loaded
+
+      if (progressFill) {
+        progressFill.style.width = `${progress}%`;
+      }
+
+      if (progressText) {
+        if (progress < 30) {
+          progressText.textContent = 'Loading map data...';
+        } else if (progress < 60) {
+          progressText.textContent = 'Rendering visualization...';
+        } else {
+          progressText.textContent = 'Finalizing interactive features...';
+        }
+      }
+
+      if (this.isLoaded && this.mapContainer && !this.mapContainer.classList.contains('hidden')) {
+        clearInterval(interval);
+        if (progressFill) progressFill.style.width = '100%';
+      }
+    }, 100);
+
+    // Cleanup after 10 seconds max
+    setTimeout(() => clearInterval(interval), 10000);
+  }
+
+  handleMapLoad() {
+    const loadTime = performance.now() - this.loadStartTime;
+
+    // Update UI
+    this.loadingState?.classList.add('hidden');
+    this.mapContainer?.classList.remove('hidden');
+    this.errorState?.classList.add('hidden');
+
+    // Update metrics
+    const loadTimeElement = this.container.querySelector(`#${this.mapId}-load-time`);
+    if (loadTimeElement) loadTimeElement.textContent = Math.round(loadTime);
+
+    // Announce to screen readers
+    this.announceToScreenReader('Interactive map loaded successfully');
+
+    // Track performance
+    this.trackEvent('map_load_success', {
+      load_time: Math.round(loadTime),
+      map_id: this.mapId
+    });
+
+    // Set up iframe communication
+    this.setupIframeComm();
+  }
+
+  handleMapError() {
+    // Show error state
+    this.loadingState?.classList.add('hidden');
+    this.mapContainer?.classList.add('hidden');
+    this.errorState?.classList.remove('hidden');
+
+    // Announce to screen readers
+    this.announceToScreenReader('Map loading failed. Fallback options available.');
+
+    // Track error
+    this.trackEvent('map_load_error', {
+      map_url: this.mapUrl,
+      map_id: this.mapId
+    });
+
+    // Auto-fallback to static image after delay
+    setTimeout(() => this.showFallback(), 2000);
+  }
+
+  setupIframeComm() {
+    // Set up postMessage communication with iframe
+    window.addEventListener('message', (e) => {
+      if (e.source !== this.iframe.contentWindow) return;
+
+      try {
+        const data = JSON.parse(e.data);
+        this.handleIframeMessage(data);
+      } catch (error) {
+        // Invalid message format
+        console.warn('Invalid iframe message:', e.data);
+      }
+    });
+  }
+
+  handleIframeMessage(data) {
+    switch (data.type) {
+      case 'map_ready':
+        this.announceToScreenReader('Map is ready for interaction');
+        break;
+      case 'map_interaction':
+        this.trackEvent('map_interaction', data.payload);
+        break;
+      case 'accessibility_request':
+        this.handleAccessibilityRequest(data.payload);
+        break;
+    }
+  }
+
+  // Global functions for button handlers
+  registerGlobalFunctions() {
+    window[`handleMapLoad_${this.mapId}`] = () => this.handleMapLoad();
+    window[`handleMapError_${this.mapId}`] = () => this.handleMapError();
+    window[`retryMapLoad_${this.mapId}`] = () => this.retryLoad();
+    window[`showFallback_${this.mapId}`] = () => this.showFallback();
+    window[`toggleFullscreen_${this.mapId}`] = () => this.toggleFullscreen();
+    window[`refreshMap_${this.mapId}`] = () => this.refreshMap();
+    window[`showMapInfo_${this.mapId}`] = () => this.showMapInfo();
+    window[`closeMapInfo_${this.mapId}`] = () => this.closeMapInfo();
+    window[`toggleAccessibilityMode_${this.mapId}`] = () => this.toggleAccessibilityMode();
+  }
+
+  retryLoad() {
+    this.isLoaded = false;
+    this.loadMap();
+  }
+
+  showFallback() {
+    this.loadingState?.classList.add('hidden');
+    this.mapContainer?.classList.add('hidden');
+    this.errorState?.classList.add('hidden');
+    this.fallbackState?.classList.remove('hidden');
+
+    this.announceToScreenReader('Showing static map version');
+  }
+
+  toggleFullscreen() {
+    if (this.iframe.requestFullscreen) {
+      this.iframe.requestFullscreen();
+    } else if (this.iframe.webkitRequestFullscreen) {
+      this.iframe.webkitRequestFullscreen();
+    }
+  }
+
+  refreshMap() {
+    if (this.iframe.src) {
+      this.iframe.src = this.iframe.src;
+      this.announceToScreenReader('Refreshing map data');
+    }
+  }
+
+  showMapInfo() {
+    const modal = this.container.querySelector(`#${this.mapId}-info-modal`);
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.querySelector('.modal-close')?.focus();
+    }
+  }
+
+  closeMapInfo() {
+    const modal = this.container.querySelector(`#${this.mapId}-info-modal`);
+    if (modal) {
+      modal.classList.add('hidden');
+    }
+  }
+
+  toggleAccessibilityMode() {
+    this.container.classList.toggle('accessibility-mode');
+    const isEnabled = this.container.classList.contains('accessibility-mode');
+
+    this.announceToScreenReader(
+      isEnabled ? 'Accessibility mode enabled' : 'Accessibility mode disabled'
+    );
+  }
+
+  // Utility functions
+  announceToScreenReader(message) {
+    if (this.announcements) {
+      this.announcements.textContent = message;
+      setTimeout(() => this.announcements.textContent = '', 1000);
+    }
+  }
+
+  trackEvent(eventName, data) {
+    if (typeof gtag !== 'undefined') {
+      gtag('event', eventName, {
+        custom_parameter: JSON.stringify(data),
+        map_component: 'optimized_embed'
+      });
+    }
+  }
+
+  isMobile() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }
+
+  handlePerformanceIssue(type, value) {
+    console.warn(`Map performance issue: ${type}`, value);
+
+    this.trackEvent('map_performance_issue', {
+      issue_type: type,
+      value: value,
+      map_id: this.mapId
+    });
+
+    // Auto-optimize for performance issues
+    if (type === 'low_fps' && value < 20) {
+      this.enableLowPerformanceMode();
+    }
+  }
+
+  enableLowPerformanceMode() {
+    this.container.classList.add('low-performance-mode');
+    this.announceToScreenReader('Performance mode enabled for smoother interaction');
+  }
+}
+
+// Auto-initialize all optimized map embeds
+document.addEventListener('DOMContentLoaded', () => {
+  const containers = document.querySelectorAll('.optimized-map-container');
+  containers.forEach(container => {
+    new OptimizedMapEmbed(container);
+  });
+});
+
+// Global functions (called from inline handlers)
+window.retryMapLoad = function(mapId) {
+  const instance = window[`handleMapLoad_${mapId}`];
+  if (instance) instance();
+};
+
+window.toggleFullscreen = function(mapId) {
+  const instance = window[`toggleFullscreen_${mapId}`];
+  if (instance) instance();
+};
+
+window.refreshMap = function(mapId) {
+  const instance = window[`refreshMap_${mapId}`];
+  if (instance) instance();
+};
+
+window.showMapInfo = function(mapId) {
+  const instance = window[`showMapInfo_${mapId}`];
+  if (instance) instance();
+};
+
+window.closeMapInfo = function(mapId) {
+  const instance = window[`closeMapInfo_${mapId}`];
+  if (instance) instance();
+};
+
+window.toggleAccessibilityMode = function(mapId) {
+  const instance = window[`toggleAccessibilityMode_${mapId}`];
+  if (instance) instance();
+};
+
+window.handleMapLoad = function(mapId) {
+  const instance = window[`handleMapLoad_${mapId}`];
+  if (instance) instance();
+};
+
+window.handleMapError = function(mapId) {
+  const instance = window[`handleMapError_${mapId}`];
+  if (instance) instance();
+};
+</script>
+
+<style>
+.optimized-map-container {
+  position: relative;
+  width: 100%;
+  background: #f8fafc;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.map-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.loading-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.loading-spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  text-align: left;
+}
+
+.loading-message {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.loading-description {
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.loading-progress {
+  width: 100%;
+  max-width: 400px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 0.5rem;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 0.25rem;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: white;
+  transition: width 0.3s ease;
+  border-radius: 0.25rem;
+}
+
+.progress-text {
+  text-align: center;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.map-fallback {
+  position: relative;
+  width: 100%;
+  min-height: 400px;
+}
+
+.fallback-image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.fallback-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+}
+
+.fallback-message {
+  text-align: center;
+  padding: 2rem;
+}
+
+.fallback-message h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.fallback-message p {
+  margin-bottom: 1rem;
+  opacity: 0.9;
+}
+
+.retry-button,
+.fallback-button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 0.25rem;
+  transition: background-color 0.2s ease;
+}
+
+.retry-button:hover,
+.fallback-button:hover {
+  background: #2563eb;
+}
+
+.fallback-button {
+  background: #6b7280;
+}
+
+.fallback-button:hover {
+  background: #4b5563;
+}
+
+.map-iframe-container {
+  position: relative;
+  width: 100%;
+}
+
+.map-intersection-trigger {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.map-controls {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 10;
+}
+
+.control-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 0.375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+.control-btn:hover {
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.control-btn:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.map-iframe {
+  width: 100%;
+  height: 600px;
+  border: none;
+  display: block;
+}
+
+.performance-metrics {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-family: monospace;
+}
+
+.metric {
+  margin-bottom: 0.25rem;
+}
+
+.map-info-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  position: relative;
+  background: white;
+  border-radius: 0.5rem;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: between;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header h2 {
+  flex: 1;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  margin-left: 1rem;
+  color: #6b7280;
+}
+
+.modal-close:hover {
+  color: #374151;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.accessibility-info,
+.interaction-help {
+  margin-top: 1.5rem;
+}
+
+.accessibility-info h3,
+.interaction-help h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: #374151;
+}
+
+.accessibility-info ul,
+.interaction-help ul {
+  list-style: none;
+  padding: 0;
+}
+
+.accessibility-info li,
+.interaction-help li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.interaction-help kbd {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  font-family: monospace;
+  font-size: 0.875rem;
+}
+
+.map-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 2rem;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #dc2626;
+}
+
+.error-content {
+  text-align: center;
+  max-width: 400px;
+}
+
+.error-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.error-content h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.error-message {
+  margin-bottom: 1.5rem;
+  color: #7f1d1d;
+}
+
+.error-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Accessibility mode enhancements */
+.optimized-map-container.accessibility-mode {
+  border: 3px solid #3b82f6;
+}
+
+.optimized-map-container.accessibility-mode .map-controls {
+  background: #1f2937;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+}
+
+.optimized-map-container.accessibility-mode .control-btn {
+  background: white;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+/* Low performance mode */
+.optimized-map-container.low-performance-mode .map-iframe {
+  filter: contrast(1.2) brightness(1.1);
+  animation: none;
+}
+
+.optimized-map-container.low-performance-mode .control-btn {
+  transition: none;
+}
+
+.optimized-map-container.low-performance-mode .control-btn:hover {
+  transform: none;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .optimized-map-container {
+    border: 2px solid;
+  }
+
+  .control-btn {
+    border: 2px solid;
+  }
+
+  .modal-content {
+    border: 2px solid;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner {
+    animation: none;
+  }
+
+  .progress-fill,
+  .control-btn,
+  .retry-button,
+  .fallback-button {
+    transition: none;
+  }
+
+  .control-btn:hover {
+    transform: none;
+  }
+}
+
+/* Mobile responsive design */
+@media (max-width: 768px) {
+  .map-iframe {
+    height: 400px;
+  }
+
+  .map-controls {
+    top: 0.5rem;
+    right: 0.5rem;
+    flex-direction: column;
+  }
+
+  .control-btn {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.875rem;
+  }
+
+  .modal-content {
+    margin: 1rem;
+    max-height: calc(100vh - 2rem);
+  }
+
+  .modal-header,
+  .modal-body {
+    padding: 1rem;
+  }
+
+  .loading-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .performance-metrics {
+    bottom: 0.5rem;
+    left: 0.5rem;
+    font-size: 0.625rem;
+  }
+}
+
+/* Print styles */
+@media print {
+  .map-controls,
+  .performance-metrics,
+  .map-info-modal {
+    display: none !important;
+  }
+
+  .map-iframe {
+    border: 1px solid #000;
+  }
+
+  .fallback-image {
+    max-height: 4in;
+    object-fit: contain;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .optimized-map-container {
+    background: #1f2937;
+  }
+
+  .modal-content {
+    background: #1f2937;
+    color: #f9fafb;
+  }
+
+  .modal-header {
+    border-bottom-color: #374151;
+  }
+
+  .accessibility-info li,
+  .interaction-help li {
+    border-bottom-color: #374151;
+  }
+
+  .interaction-help kbd {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+}
+</style>
