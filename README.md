@@ -1,6 +1,6 @@
 # ACE Intelligence System by Jujutsu Query
 
-ClearLane is a student led analysis and product concept that studies NYC bus lane violations and their impact on bus performance and student commutes, the project combines a Streamlit dashboard, a public facing Astro site, reproducible notebooks, and exported results, the goal is simple, build from a basic exploration to a focused, decision ready story that shows where enforcement should be placed and when it should be there, everything in this repository supports that arc, from raw analysis to a policy ready narrative
+ClearLane is a student led analysis and product concept that studies NYC bus lane violations and their impact on bus performance and student commutes, the project combines a Streamlit dashboard, a public facing Astro site, reproducible notebooks, and exported results, the goal is simple, build from a basic exploration to a focused, decision ready story that shows where enforcement should be placed and when it should be there, everything in this repository supports that arc, from raw analysis to a policy ready narrative.
 
 ---
 
