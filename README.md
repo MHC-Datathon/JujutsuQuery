@@ -218,6 +218,6 @@ Because code paths and reports cover different time ranges and subsets, numbers 
 - Albert Bagdasarov, @AlbertBagdos256
 - Basir Abdul Samad, @BasirS
 - Caitlin Reyes, @Caitlin-Reyes
-- Tenzin Namdol, @TenzinNamdol256-arch
+- Tenzin Namdol, @Tenzin-Namdol
 
 This project is part of the 2025 MTA Datathon at Macaulay Honors College and the MTA, for questions or collaboration, please contact Jujutsu Query
