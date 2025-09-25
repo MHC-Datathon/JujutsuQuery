@@ -1,257 +1,0 @@
-SoQL Tutorial
-Intro to SoQL
-Sep 19, 2025
-
-Data & Analytics
-Metropolitan Transportation Authority
-
-Agenda
-NYS Data Catalog tools, SODA, and SoQL
-Why do we want to use SoQL?
-Tutorial Part 1: How to filter, group and aggregate
-Tutorial Part 2: Modify the API endpoint URL
-Tutorial Part 3: Using Python to submit SoQL
-
-NYS Data Catalog tools, SODA, and SoQL
-
-What is the
-NYS Catalog?
-
-• MTA's open data is hosted on the New York State
-Open Data Catalog
-
-What is the
-NYS Catalog?
-
-What does
-SODA mean?
-
-• MTA's open data is hosted on the New York State
-Open Data Catalog
-• New York State open datasets use the Socrata Open
-Data API (SODA).
-
-What is SoQL
-
-• MTA's open data is hosted on the New York State
-Open Data Catalog
-• New York State open datasets use the Socrata Open
-Data API (SODA).
-• Socrata Query Language (SoQL)
-
-Why use SoQL?
-
-Why Use
-SoQL?
-
-You can't download BIG DATA!
-
-Bus Hourly Ridership Dataset Preview
-
-Bus Hourly
-Ridership
-
-Research Questions:
-- How do passengers utilize NYC buses?
-
-Bus Hourly
-Ridership
-
-Research Questions:
-- How do passengers utilize NYC buses?
-KIND OF BROAD.. :/
-
-Bus Hourly
-Ridership
-
-Research Questions:
-- How do passengers utilize NYC buses?
-Instead, we want something like:
-- How does ridership vary by fare category?
-- Who are the Fair Fares riders?
-- How has Fair Fare ridership changed over time?
-
-Bus Hourly
-Ridership
-
-Research Questions:
-
-"What are the highest ridership bus routes used
-by Fair Fares riders?"
-
-Tutorial Part 1: How to filter, group and
-aggregate
-
-Tutorial Part 2: Modify the API endpoint URL
-
-Modifying the
-API endpoint
-URL using SoQL
-
-API endpoint URL produced by the data preview
-transformations:
-https://data.ny.gov/resource/gxb3akrn.csv?$query=SELECT%0A%20%20date_trunc_ym(%60transit_timestamp%60)%20
-AS%20%60by_month_transit_timestamp%60%2C%0A%20%20%60bus_route%60%2C
-%0A%20%20%60fare_class_category%60%2C%0A%20%20sum(%60ridership%60)%20
-AS%20%60sum_ridership%60%0AWHERE%0A%20%20%60transit_timestamp%60%0A
-%20%20%20%20BETWEEN%20%222025-0801T00%3A00%3A00%22%20%3A%3A%20floating_timestamp%0A%20%20%20%20AN
-D%20%222025-0831T00%3A00%3A00%22%20%3A%3A%20floating_timestamp%0A%20%20AND%20cas
-eless_one_of(%0A%20%20%20%20%60fare_class_category%60%2C%0A%20%20%20
-%20%22Metrocard%20-%20Fair%20Fare%22%2C%0A%20%20%20%20%22OMNY%20%20Fair%20Fare%22%0A%20%20)%0AGROUP%20BY%0A%20%20date_trunc_ym(%60
-transit_timestamp%60)%2C%0A%20%20%60bus_route%60%2C%0A%20%20%60fare_
-class_category%60%0AORDER%20BY%20%60sum_ridership%60%20DESC%20NULL%2
-0LAST
-
-Modifying the
-API endpoint
-URL using SoQL
-
-API endpoint URL produced by the data preview
-transformations:
-https://data.ny.gov/resource/gxb3akrn.csv?$query=SELECT%0A%20%20date_trunc_ym(%60transit_timestamp%60)%20AS%2
-0%60by_month_transit_timestamp%60%2C%0A%20%20%60bus_route%60%2C%0A%20%
-20%60fare_class_category%60%2C%0A%20%20sum(%60ridership%60)%20AS%20%60sum
-_ridership%60%0AWHERE%0A%20%20%60transit_timestamp%60%0A%20%20%20%20BET
-WEEN%20%222025-0801T00%3A00%3A00%22%20%3A%3A%20floating_timestamp%0A%20%20%20%20AND%20
-%222025-0831T00%3A00%3A00%22%20%3A%3A%20floating_timestamp%0A%20%20AND%20caseless
-_one_of(%0A%20%20%20%20%60fare_class_category%60%2C%0A%20%20%20%20%22M
-etrocard%20-%20Fair%20Fare%22%2C%0A%20%20%20%20%22OMNY%20%20Fair%20Fare%22%0A%20%20)%0AGROUP%20BY%0A%20%20date_trunc_ym(%60trans
-it_timestamp%60)%2C%0A%20%20%60bus_route%60%2C%0A%20%20%60fare_class_cate
-gory%60%0AORDER%20BY%20%60sum_ridership%60%20DESC%20NULL%20LAST
-
-Confusing
-
-• Use SoQL to filter the dataset within the URL
-
-Modifying the
-API endpoint
-URL using SoQL
-
-Modifying the
-API endpoint
-URL using SoQL
-
-• Use SoQL to filter the dataset within the URL, typically
-how it works:
-• Append a question mark (?) to the end of the
-unfiltered URL
-• Adding a dollar sign ($) infront of SoQL Parameter
-i.e. $SELECT, $WHERE, $GROUP etc
-• Equals sign (=) for each SoQL parameter
-• An "&" symbol before each subsequent parameter
-
-Modifying the
-API endpoint
-URL using SoQL
-
-• Use SoQL to filter the dataset within the URL, typically
-how it works:
-• Append a question mark (?) to the end of the
-unfiltered URL
-• Adding a dollar sign ($) infront of SoQL Parameter
-i.e. $SELECT, $WHERE, $GROUP etc
-• Equals sign (=) for each SoQL parameter
-• An "&" symbol before each subsequent parameter
-Example: https://data.ny.gov/resource/gxb3akrn.csv?$select=bus_route,sum(ridership)&$where=fare_class_category
-
-in ('Metrocard - Fair Fare', 'OMNY - Fair Fare')&$group=bus_route
-
-Modifying the
-API endpoint
-URL using SoQL
-
-• Use SoQL to filter the dataset within the URL, typically
-how it works:
-• Append a question mark (?) to the end of the
-unfiltered URL
-• Adding a dollar sign ($) infront of SoQL Parameter
-i.e. $SELECT, $WHERE, $GROUP etc
-• Equals sign (=) for each SoQL parameter
-• An "&" symbol before each subsequent parameter
-• Lastly, you can use $query parameter - letting you write
-SQL-like statements directly which eliminates adding
-the $ and & signs for every clause
-
-Modifying the
-API endpoint
-URL using SoQL
-
-• Use SoQL to filter the dataset within the URL, typically
-how it works:
-• Append a question mark (?) to the end of the
-unfiltered URL
-• Adding a dollar sign ($) infront of SoQL Parameter
-i.e. $SELECT, $WHERE, $GROUP etc
-• Equals sign (=) for each SoQL parameter
-• An "&" symbol before each subsequent parameter
-• Lastly, you can use $query parameter - letting you write
-SQL-like statements directly which eliminates adding
-the $ and & signs for every clause
-Lets create one together :)
-
-Modifying the
-API endpoint
-URL using SoQL
-
-1. Grab entire Dataset url:
-https://data.ny.gov/resource/gxb3-akrn.csv
-
-2. Add the question mark (?) and the $query
-parameter to the above url:
-https://data.ny.gov/resource/gxb3-akrn.csv?$query=
-
-Modifying the
-API endpoint
-URL using SoQL
-
-3. Using SoQL functions:
-Select your columns all in one SELECT clause:
-
-SELECT
-date_trunc_ym(transit_timestamp) AS month,
-bus_route,
-fare_class_category,
-SUM(ridership) AS sum_ridership
-
-Modifying the
-API endpoint
-URL using SoQL
-
-4. Filter to fare class bus riders:
-WHERE transit_timestamp BETWEEN '2025-0101T00:00:00' AND '2025-03-31T23:59:59'
-AND
-fare_class_category in ('Metrocard - Fair Fare', 'OMNY Fair Fare')
-
-5.Group the data by truncated month, bus route, and
-fare_class_category
-GROUP BY date_trunc_ym(transit_timestamp),
-bus_route, fare_class_category
-
-Modifying the
-API endpoint
-URL using SoQL
-
-6. Order your results using ORDER:
-ORDER BY sum_ridership DESC
-
-7. Important - Increase the row limit, Default is 1000
-rows. Bump it up to, say, 3000 to be safe:
-LIMIT 3000
-
-Modifying the
-API endpoint
-URL using SoQL
-
-8. All together your API endpoint would look like this:
-https://data.ny.gov/resource/gxb3akrn.csv?$query=select
-date_trunc_ym(transit_timestamp) AS
-month, bus_route, fare_class_category,
-sum(ridership) AS sum_ridership where transit_timesta
-mp between'2025-01-01T00:00:00' and'2025-0331T23:59:59' and fare_class_category in ('Metrocard - Fair
-Fare', 'OMNY - Fair Fare') group
-by date_trunc_ym(transit_timestamp), bus_route, fare_cla
-ss_category order by sum_ridership desc limit 3000
-
-Thank you!
-
-

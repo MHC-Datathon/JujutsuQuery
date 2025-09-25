@@ -1,4 +1,6 @@
-/* Essential ClearLane styles - processed version */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Custom font classes */
 .font-display {
@@ -61,7 +63,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Base styles */
 html {
-  font-family: 'Space Grotesk', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
@@ -76,186 +78,26 @@ body {
   line-height: 1.6;
 }
 
-/* Essential Tailwind-like utility classes */
-.antialiased {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Accessibility improvements */
+*:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
-.min-h-screen {
-  min-height: 100vh;
+*:focus:not(:focus-visible) {
+  outline: none;
 }
 
-.flex {
-  display: flex;
-}
-
-.flex-col {
-  flex-direction: column;
-}
-
-.bg-white {
-  background-color: white;
-}
-
-.shadow-sm {
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-}
-
-.border-b {
-  border-bottom-width: 1px;
-}
-
-.border-gray-200 {
-  border-color: var(--color-gray-200);
-}
-
-.sticky {
-  position: sticky;
-}
-
-.top-0 {
-  top: 0;
-}
-
-.z-50 {
-  z-index: 50;
-}
-
-.max-w-7xl {
-  max-width: 80rem;
-}
-
-.mx-auto {
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.px-4 {
-  padding-left: 1rem;
-  padding-right: 1rem;
-}
-
-.py-6 {
-  padding-top: 1.5rem;
-  padding-bottom: 1.5rem;
-}
-
-.justify-between {
-  justify-content: space-between;
-}
-
-.items-center {
-  align-items: center;
-}
-
-.h-16 {
-  height: 4rem;
-}
-
-.space-x-3 > :not([hidden]) ~ :not([hidden]) {
-  margin-left: 0.75rem;
-}
-
-.group:hover .group-hover\:text-primary {
-  color: var(--color-primary);
-}
-
-.w-10 {
-  width: 2.5rem;
-}
-
-.h-10 {
-  height: 2.5rem;
-}
-
-.bg-primary {
-  background-color: var(--color-primary);
-}
-
-.rounded-lg {
-  border-radius: 0.5rem;
-}
-
-.flex {
-  display: flex;
-}
-
-.items-center {
-  align-items: center;
-}
-
-.justify-center {
-  justify-content: center;
-}
-
-.w-6 {
-  width: 1.5rem;
-}
-
-.h-6 {
-  height: 1.5rem;
-}
-
-.text-white {
-  color: white;
-}
-
-.fill-current {
-  fill: currentColor;
-}
-
-.text-xl {
-  font-size: 1.25rem;
-  line-height: 1.75rem;
-}
-
-.font-bold {
-  font-weight: 700;
-}
-
-.text-gray-900 {
-  color: var(--color-gray-900);
-}
-
-.transition-colors {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-
-.text-sm {
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-}
-
-.text-gray-600 {
-  color: var(--color-gray-600);
-}
-
-.-mt-1 {
-  margin-top: -0.25rem;
-}
-
-.hidden {
-  display: none;
-}
-
-@media (min-width: 640px) {
-  .sm\:block {
-    display: block;
-  }
-}
-
-@media (min-width: 1024px) {
-  .lg\:h-20 {
-    height: 5rem;
-  }
-  
-  .lg\:px-8 {
-    padding-left: 2rem;
-    padding-right: 2rem;
-  }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* Skip to content link */
@@ -281,34 +123,70 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Emoji and icon containment */
-[role="img"] {
-  display: inline-block !important;
-  vertical-align: middle !important;
-  line-height: 1 !important;
-  position: relative !important;
-  max-width: 100% !important;
-  overflow: hidden !important;
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
-.emoji-container {
-  position: relative !important;
-  display: block !important;
-  width: 100% !important;
-  text-align: center !important;
-  overflow: hidden !important;
-  contain: layout !important;
-  z-index: 1 !important;
+/* Print styles */
+@media print {
+  * {
+    background: transparent !important;
+    color: black !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  a,
+  a:visited {
+    text-decoration: underline;
+  }
+
+  a[href]:after {
+    content: " (" attr(href) ")";
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-break-before {
+    page-break-before: always;
+  }
+
+  .print-break-after {
+    page-break-after: always;
+  }
+
+  .print-break-inside-avoid {
+    page-break-inside: avoid;
+  }
 }
 
-.text-3xl, .text-4xl, .text-5xl {
-  position: relative !important;
-  display: block !important;
-  width: 100% !important;
-  text-align: center !important;
-  overflow: hidden !important;
-  contain: layout !important;
-  z-index: 1 !important;
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --color-border: black;
+    --color-text-secondary: black;
+  }
+}
+
+/* Dark mode preparation (not implemented but structure ready) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    /* Dark mode colors would go here */
+  }
 }
 
 /* Loading state */
@@ -345,4 +223,96 @@ html {
     transform: none;
     animation: none;
   }
+}
+
+/* Emoji and icon containment - Force containment */
+[role="img"] {
+  display: inline-block !important;
+  vertical-align: middle !important;
+  line-height: 1 !important;
+  position: relative !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Ensure emojis don't break out of their containers */
+.text-3xl, .text-4xl, .text-5xl {
+  display: block !important;
+  width: 100% !important;
+  text-align: center !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+/* Prevent emoji from floating - More aggressive containment */
+.emoji-container {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  text-align: center !important;
+  overflow: hidden !important;
+  contain: layout !important;
+}
+
+/* Force all emoji divs to stay in place */
+div[class*="text-"] {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Specific targeting for problematic emojis */
+div:has(> [role="img"]) {
+  position: relative !important;
+  overflow: hidden !important;
+  contain: layout !important;
+}
+
+/* Force all emoji elements to stay in their containers */
+div[class*="text-"]:has(> [role="img"]) {
+  position: relative !important;
+  overflow: hidden !important;
+  contain: layout !important;
+  display: block !important;
+  width: 100% !important;
+  text-align: center !important;
+}
+
+/* Force all emoji elements to stay in their containers */
+[role="img"] {
+  position: relative !important;
+  display: inline-block !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  vertical-align: middle !important;
+  z-index: 1 !important;
+}
+
+/* Nuclear option - force all emoji containers to be properly positioned */
+.emoji-container {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  text-align: center !important;
+  overflow: hidden !important;
+  contain: layout !important;
+  z-index: 1 !important;
+}
+
+/* Force all text size classes to contain their content */
+.text-3xl, .text-4xl, .text-5xl {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  text-align: center !important;
+  overflow: hidden !important;
+  contain: layout !important;
+  z-index: 1 !important;
+}
+
+/* Ensure emojis don't escape their parent containers */
+.emoji-container * {
+  position: relative !important;
+  display: inline-block !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
 }
