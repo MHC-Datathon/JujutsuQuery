@@ -2,6 +2,17 @@
 
 ClearLane is a student led analysis and product concept that studies NYC bus lane violations and their impact on bus performance and student commutes, the project combines a Streamlit dashboard, a public facing Astro site, reproducible notebooks, and exported results, the goal is simple, build from a basic exploration to a focused, decision ready story that shows where enforcement should be placed and when it should be there, everything in this repository supports that arc, from raw analysis to a policy ready narrative
 
+---
+
+## Team
+
+- Albert Bagdasarov, @AlbertBagdos256
+- Basir Abdul Samad, @BasirS
+- Caitlin Reyes, @Caitlin-Reyes
+- Tenzin Namdol, @Tenzin-Namdol
+
+---
+
 ## The central idea and narrative
 
 Buses act like educational infrastructure for CUNY students, the commute is a rolling study hall that should be protected, violations are not random, they cluster at a small set of locations and they peak during school commute hours, a targeted approach called ClearLane focuses enforcement on those locations during those hours, which is expected to raise speeds and give students back study time, the numbers you see below are tied to the specific sources where they appear in code and results so a reader can follow the trail
@@ -212,12 +223,5 @@ Because code paths and reports cover different time ranges and subsets, numbers 
 - Launch the story style dashboard from the repository root, run `python dashboard/run_dashboard.py`
 - Launch the multi page dashboards, change directory into `dashboard/dashboards/` and run `streamlit run app.py`
 - Build or preview the Astro site with your usual Astro workflow, `astro.config.mjs` governs the build
-
-## Team
-
-- Albert Bagdasarov, @AlbertBagdos256
-- Basir Abdul Samad, @BasirS
-- Caitlin Reyes, @Caitlin-Reyes
-- Tenzin Namdol, @Tenzin-Namdol
 
 This project is part of the 2025 MTA Datathon at Macaulay Honors College and the MTA, for questions or collaboration, please contact Jujutsu Query
