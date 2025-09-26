@@ -2,18 +2,10 @@
 
 We're Team Jujutsu Query, and this project started with something we see every day: CUNY students trying to study on stuck buses. What began as a personal frustration with the BxM10 route turned into a comprehensive investigation that uncovered a massive system failure and led us to build a solution that could give back 7 million student hours to New York City.
 
-## Our Team
-
-- [Basir Abdul Samad](https://github.com/BasirS)
-- [Albert Bagdasarov](https://github.com/AlbertBagdos256)
-- [Caitlin Reyes](https://github.com/Caitlin-Reyes)
-- [Tenzin Namdol](https://github.com/Tenzin-Namdol)
-
 ## See Our Work in Action
 
 - **Live Dashboard**: [https://jujutsuquery-mta-analytics.streamlit.app/](https://jujutsuquery-mta-analytics.streamlit.app/)
 - **Interactive Website**: [https://basirs.github.io/ACE_Intelligence_System/](https://basirs.github.io/ACE_Intelligence_System/)
-- **Video Presentation**: [https://youtu.be/QIEuvQGrqm8](https://youtu.be/QIEuvQGrqm8)
 
 ## The Story Behind the Numbers
 
